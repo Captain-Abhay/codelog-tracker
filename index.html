@@ -264,7 +264,6 @@ textarea{resize:vertical;min-height:72px}
 
 <header>
   <div class="header-left">
-    <img src="./icon-192.png" alt="CodeLog" style="width:28px;height:28px;border-radius:6px">
     <h1>Code<span>Log</span></h1>
     <span class="header-sub">// track what you grind</span>
     <span class="sync-dot" id="sync-dot" title="Synced"></span>
@@ -544,7 +543,7 @@ async function createProfile(){
 }
 
 function deleteProfile(name){
-  if(!confirm(`Delete profile "${name}"? Their entries stay in the database but won't be visible here.`)) return;
+  if(!confirm(`Delete profile "${name}" from this device? Your entries remain in the database and the username can be reclaimed.`)) return;
   let profiles = loadProfiles().filter(p=>p!==name);
   saveProfiles(profiles);
   if(DEBUG) console.log(`[CodeLog] deleteProfile — "${name}" removed from local list`);
@@ -555,6 +554,10 @@ function deleteProfile(name){
     if(snapshotUnsub){ snapshotUnsub(); snapshotUnsub=null; }
     state.entries=[];
   }
+  // Release the username in Firestore so it can be recreated on any device
+  deleteDoc(doc(db,'users',name)).catch(err=>{
+    console.warn(`[CodeLog] deleteProfile — failed to remove users/${name} from Firestore:`, err.message);
+  });
   renderProfileList();
   if(!currentUser) showProfileScreen();
 }
@@ -648,11 +651,11 @@ function initDOMCache(){
 }
 
 // ── STATE ─────────────────────────────────────────────────
-const DEFAULTS = ['DSA','Web Dev','Game Dev','AI/ML'];
+const DEFAULTS = []; // No preset categories — every user builds their own
 let state = {
   entries:     [],          // local cache — source of truth for UI
-  categories:  [...DEFAULTS],
-  selectedCat: 'DSA',
+  categories:  [],
+  selectedCat: null,  // set to first category when user creates one
   filterCat:   'all',
 };
 let activePage      = 'log';
@@ -667,7 +670,7 @@ function loadCats(){
     const key = currentUser ? `cl_cats_${currentUser}` : 'cl_cats';
     const r=localStorage.getItem(key);
     if(r){ state.categories=JSON.parse(r); console.log(`[CodeLog] loadCats — loaded for user "${currentUser}":`, state.categories); }
-    else  { state.categories=[...DEFAULTS]; console.log('[CodeLog] loadCats — no saved categories, using defaults'); }
+    else  { state.categories=[]; if(DEBUG) console.log('[CodeLog] loadCats — no saved categories, starting fresh'); }
   }catch(e){ console.error('[CodeLog] loadCats — parse error:', e); }
 }
 function saveCats(){
@@ -687,8 +690,8 @@ function todayStr(){
 }
 function dateLabel(ds){ return new Date(ds+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}); }
 function catColor(cat){ const i=state.categories.indexOf(cat)%CAT_PALETTE.length; return CAT_PALETTE[Math.max(0,i)]; }
-function setEl(id,v)  {
-  const e = (DOM.stats && DOM.stats[id]) || document.getElementById(id);
+function setEl(id,v){
+  const e = DOM.stats[id];
   if(e) e.textContent=v;
 }
 
@@ -798,6 +801,7 @@ async function addEntry(){
   const noteEl  = DOM.inputNote;
   const title   = titleEl.value.trim();
   if(!title){ showToast('Enter a problem or link first','error'); return; }
+  if(!state.selectedCat){ showToast('Add a category first in the Tags tab','error'); return; }
 
   const note = noteEl.value.trim();
 
@@ -870,6 +874,13 @@ function switchPage(page,btn){
 // ── CATEGORIES ────────────────────────────────────────────
 function renderCatPills(){
   const c=DOM.catPills; c.innerHTML='';
+  if(!state.categories.length){
+    const hint=document.createElement('div');
+    hint.style.cssText='font-family:Space Mono,monospace;font-size:.68rem;color:var(--muted);padding:6px 0';
+    hint.textContent='No categories yet — add one in the Tags tab';
+    c.appendChild(hint);
+    return;
+  }
   const frag=document.createDocumentFragment();
   state.categories.forEach(cat=>{
     const col=catColor(cat),p=document.createElement('div');
@@ -888,27 +899,33 @@ function renderCatManage(){
     const col=catColor(cat),item=document.createElement('div');
     item.className='cat-manage-item'; item.style.background=col.bg; item.style.color=col.text;
     const catSpan=document.createElement('span'); catSpan.textContent=cat; item.appendChild(catSpan);
-    if(!DEFAULTS.includes(cat)){
-      const btn=document.createElement('button'); btn.className='btn-del-cat';
-      btn.textContent='✕'; btn.style.color=col.text; btn.onclick=()=>deleteCat(cat);
-      item.appendChild(btn);
-    }
+    // All categories are user-created and deletable
+    const btn=document.createElement('button'); btn.className='btn-del-cat';
+    btn.textContent='✕'; btn.style.color=col.text; btn.onclick=()=>deleteCat(cat);
+    item.appendChild(btn);
     frag.appendChild(item);
   });
   c.appendChild(frag);
 }
 function addCategory(){
-  const inp=DOM.inputNewCat,name=inp.value.trim();
+  const inp=DOM.inputNewCat;
+  // Normalize whitespace, preserve original casing for display
+  const name=inp.value.trim().replace(/\s+/g,' ');
   if(!name) return;
-  if(state.categories.find(c=>c.toLowerCase()===name.toLowerCase())){ showToast('Already exists!','error'); return; }
-  state.categories.push(name); saveCats(); inp.value=''; renderAll();
+  // Case-insensitive duplicate check — 'DSA', 'dsa', 'Dsa' all blocked
+  if(state.categories.some(c=>c.toLowerCase()===name.toLowerCase())){ showToast('Already exists!','error'); return; }
+  state.categories.push(name);
+  if(state.categories.length===1) state.selectedCat=name; // auto-select first category
+  saveCats(); inp.value='';
+  // Only re-render category UI — heatmap and stats don't change
+  renderCatPills(); renderCatManage(); renderFilterTabs();
   if(DEBUG) console.log(`[CodeLog] addCategory — "${name}" added, total: ${state.categories.length}`);
   showToast(`"${name}" added ✓`);
 }
 function deleteCat(cat){
   if(!confirm(`Delete "${cat}"? Entries keep their tag.`)) return;
   state.categories=state.categories.filter(c=>c!==cat);
-  if(state.selectedCat===cat) state.selectedCat=state.categories[0];
+  if(state.selectedCat===cat) state.selectedCat=state.categories[0] || null;
   if(state.filterCat===cat)   state.filterCat='all';
   saveCats();
   if(DEBUG) console.log(`[CodeLog] deleteCat — "${cat}" removed, remaining: ${state.categories.length}`);
