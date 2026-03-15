@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>CodeLog — Practice Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:#0a0a0f; --surface:#13131a; --surface2:#1c1c26; --border:#2a2a38;
+  --text:#e8e8f0; --muted:#6b6b80; --accent:#7c6bff; --accent2:#b8a9ff;
+  --green0:#161b22; --green1:#1a4a2e; --green2:#226937; --green3:#2ea043; --green4:#3dd563;
+  --danger:#ff5a7a; --radius:10px; --nav-h:64px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:100;background:rgba(10,10,15,0.93);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:13px 18px;display:flex;align-items:center;justify-content:space-between}
+.header-left{display:flex;align-items:baseline;gap:12px}
+header h1{font-size:1.5rem;font-weight:800;letter-spacing:-.5px}
+header h1 span{color:var(--accent)}
+.header-sub{font-family:'Space Mono',monospace;font-size:.65rem;color:var(--muted);display:none}
+.header-stats{display:flex;gap:8px}
+.hstat{text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px 10px;min-width:48px}
+.hstat-num{font-size:1rem;font-weight:800;color:var(--accent2);line-height:1}
+.hstat-lbl{font-size:.5rem;font-family:'Space Mono',monospace;color:var(--muted);margin-top:2px}
+
+/* SYNC DOT */
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green3);display:inline-block;margin-left:8px;vertical-align:middle;transition:background .3s;flex-shrink:0}
+.sync-dot.syncing{background:var(--accent);animation:pulse .8s infinite}
+.sync-dot.error{background:var(--danger)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* BOTTOM NAV */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:rgba(13,13,20,.97);border-top:1px solid var(--border);z-index:200;align-items:stretch}
+.bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:none;color:var(--muted);font-family:'Space Mono',monospace;font-size:.58rem;cursor:pointer;transition:color .15s;padding:0}
+.bnav-btn .icon{font-size:1.2rem;line-height:1}
+.bnav-btn.active{color:var(--accent2)}
+
+/* PAGES */
+.page{display:none}
+.page.active{display:block}
+
+/* CONTAINER */
+.container{width:100%;max-width:1200px;margin:0 auto;padding:18px 14px}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:16px}
+.card-title{font-size:.65rem;font-family:'Space Mono',monospace;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+
+/* LOADING */
+.loading-overlay{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:16px;transition:opacity .3s}
+.loading-overlay.hidden{opacity:0;pointer-events:none}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-family:'Space Mono',monospace;font-size:.75rem;color:var(--muted)}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.stat-box{background:var(--surface2);border-radius:var(--radius);padding:14px 8px;text-align:center}
+.stat-num{font-size:1.6rem;font-weight:800;color:var(--accent2);line-height:1}
+.stat-label{font-size:.62rem;font-family:'Space Mono',monospace;color:var(--muted);margin-top:4px}
+
+/* FORM */
+.form-group{margin-bottom:14px}
+label{display:block;font-size:.75rem;font-weight:600;color:var(--muted);margin-bottom:6px}
+input[type="text"],textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'Space Mono',monospace;font-size:.85rem;padding:12px 14px;outline:none;transition:border-color .2s;-webkit-appearance:none}
+input[type="text"]:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:72px}
+
+.cat-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px}
+.cat-pill{padding:7px 14px;border-radius:20px;font-size:.72rem;font-weight:700;cursor:pointer;border:2px solid transparent;transition:all .15s;font-family:'Space Mono',monospace;user-select:none}
+.cat-pill.selected{transform:scale(1.06)}
+.cat-pill:not(.selected){opacity:.4}
+
+.btn-submit{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;letter-spacing:.5px;transition:background .2s,transform .1s;margin-top:4px}
+.btn-submit:hover{background:var(--accent2);color:#111}
+.btn-submit:active{transform:scale(.97)}
+
+/* CATEGORIES */
+.cat-manage-list{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.cat-manage-item{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:.72rem;font-family:'Space Mono',monospace;font-weight:700}
+.btn-del-cat{background:none;border:none;cursor:pointer;font-size:.8rem;line-height:1;padding:0;opacity:.5}
+.btn-del-cat:hover{opacity:1}
+.add-cat-row{display:flex;gap:8px}
+.add-cat-row input{flex:1}
+.btn-add-cat{padding:10px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--accent);font-family:'Space Mono',monospace;font-size:.8rem;cursor:pointer;white-space:nowrap;transition:background .2s}
+.btn-add-cat:hover{background:var(--border)}
+
+/* FILTER TABS */
+.filter-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.filter-tab{padding:7px 14px;border-radius:20px;font-size:.7rem;font-family:'Space Mono',monospace;font-weight:700;cursor:pointer;border:2px solid var(--border);background:transparent;color:var(--muted);transition:all .15s}
+.filter-tab.active{border-color:var(--accent);color:var(--accent);background:rgba(124,107,255,.1)}
+
+/* HEATMAP */
+.heatmap-wrap{overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch}
+.heatmap-container{display:flex;flex-direction:column;gap:4px}
+.heatmap-months{display:flex;gap:3px;padding-left:28px;font-family:'Space Mono',monospace;font-size:.6rem;color:var(--muted);margin-bottom:2px}
+.heatmap-body{display:flex;gap:3px}
+.day-labels{display:flex;flex-direction:column;gap:3px;margin-right:4px;font-family:'Space Mono',monospace;font-size:.58rem;color:var(--muted)}
+.day-label{height:13px;line-height:13px}
+.heatmap-grid{display:flex;gap:3px}
+.heatmap-col{display:flex;flex-direction:column;gap:3px}
+.heatmap-cell{width:13px;height:13px;border-radius:3px;background:var(--green0);cursor:pointer;transition:transform .1s;position:relative;flex-shrink:0}
+.heatmap-cell:hover{transform:scale(1.4);z-index:10;outline:1.5px solid rgba(255,255,255,.25)}
+.heatmap-cell.l1{background:var(--green1)}
+.heatmap-cell.l2{background:var(--green2)}
+.heatmap-cell.l3{background:var(--green3)}
+.heatmap-cell.l4{background:var(--green4)}
+.heatmap-cell.today{outline:2px solid var(--accent2)!important}
+.legend{display:flex;align-items:center;gap:5px;font-family:'Space Mono',monospace;font-size:.6rem;color:var(--muted);margin-top:10px;flex-wrap:wrap}
+.legend-cell{width:13px;height:13px;border-radius:3px;flex-shrink:0}
+
+/* DAY PANEL */
+.day-panel{display:none}
+.day-panel.active{display:block;animation:fadeUp .2s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.day-panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.day-panel-date{font-size:1rem;font-weight:700}
+.day-panel-count{font-family:'Space Mono',monospace;font-size:.7rem;color:var(--muted)}
+.btn-close{background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;padding:4px 6px;border-radius:6px;transition:background .15s}
+.btn-close:hover{background:var(--border);color:var(--text)}
+.cat-group-header{font-size:.65rem;font-family:'Space Mono',monospace;letter-spacing:1.5px;text-transform:uppercase;padding:6px 0 8px;margin-top:4px;border-bottom:1px solid var(--border);margin-bottom:8px}
+.entry-list{display:flex;flex-direction:column;gap:10px}
+.entry-item{background:var(--surface2);border-radius:var(--radius);padding:14px;border-left:3px solid;transition:opacity .2s}
+.entry-item.pending{opacity:.55}
+.entry-item-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.entry-title{font-size:.88rem;font-weight:600;word-break:break-word}
+.entry-title a{color:var(--accent2);text-decoration:none}
+.entry-title a:hover{text-decoration:underline}
+.entry-note{font-size:.76rem;color:var(--muted);margin-top:6px;font-family:'Space Mono',monospace;line-height:1.5}
+.entry-time{font-size:.63rem;color:var(--muted);font-family:'Space Mono',monospace;margin-top:5px}
+.btn-delete-entry{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:0;opacity:.4;transition:opacity .15s;flex-shrink:0}
+.btn-delete-entry:hover{opacity:1;color:var(--danger)}
+.empty-state{text-align:center;padding:32px 16px;color:var(--muted);font-family:'Space Mono',monospace;font-size:.75rem}
+
+/* TOOLTIP */
+.tooltip{position:fixed;background:#1e1e2e;border:1px solid var(--border);border-radius:var(--radius);padding:7px 12px;font-family:'Space Mono',monospace;font-size:.7rem;color:var(--text);pointer-events:none;z-index:1000;white-space:nowrap;display:none}
+
+/* TOAST */
+.toast{position:fixed;bottom:calc(var(--nav-h) + 12px);right:16px;background:var(--surface);border:1px solid var(--green3);border-radius:var(--radius);padding:11px 16px;font-family:'Space Mono',monospace;font-size:.78rem;color:var(--green4);z-index:2000;display:none;animation:toastIn .25s ease;max-width:calc(100vw - 32px)}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* RESPONSIVE */
+@media(max-width:599px){
+  body{padding-bottom:var(--nav-h)}
+  header h1{font-size:1.3rem}
+  .bottom-nav{display:flex}
+  .page{display:none}
+  .page.active{display:block}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .stat-num{font-size:1.35rem}
+  .stats-card-desktop{display:none}
+  .container{padding:12px 12px}
+  .card{padding:15px;border-radius:12px}
+}
+@media(min-width:600px) and (max-width:899px){
+  .bottom-nav{display:none}
+  .page{display:block!important}
+  .header-sub{display:block}
+  .header-stats{display:none}
+  .main-layout{display:flex;flex-direction:column;gap:0}
+  .stats-card-desktop{display:block}
+  .toast{bottom:20px}
+}
+@media(min-width:900px){
+  .bottom-nav{display:none}
+  .page{display:block!important}
+  .header-sub{display:block}
+  .header-stats{display:none}
+  .main-layout{display:grid;grid-template-columns:320px 1fr;gap:20px;align-items:start}
+  .stats-card-desktop{display:block}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .toast{bottom:24px;right:24px}
+}
+@media(min-width:1100px){
+  .main-layout{grid-template-columns:360px 1fr}
+  header h1{font-size:1.7rem}
+}
+
+/* ── PROFILE SCREEN ─────────────────────────────────────── */
+.profile-screen{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center;padding:24px}
+.profile-screen.hidden{display:none}
+.profile-box{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px 28px}
+.profile-box h2{font-size:1.6rem;font-weight:800;margin-bottom:4px}
+.profile-box h2 span{color:var(--accent)}
+.profile-box .sub{font-family:'Space Mono',monospace;font-size:.7rem;color:var(--muted);margin-bottom:28px}
+.profile-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.profile-btn{display:flex;align-items:center;gap:14px;padding:13px 16px;background:var(--surface2);border:2px solid var(--border);border-radius:12px;cursor:pointer;transition:all .15s;width:100%;text-align:left}
+.profile-btn:hover{border-color:var(--accent);background:rgba(124,107,255,.08)}
+.profile-btn.active-profile{border-color:var(--accent2);background:rgba(184,169,255,.1)}
+.profile-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:700;flex-shrink:0}
+.profile-info{flex:1;min-width:0}
+.profile-name{font-size:.9rem;font-weight:700}
+.profile-meta{font-size:.65rem;font-family:'Space Mono',monospace;color:var(--muted);margin-top:2px}
+.profile-check{color:var(--accent2);font-size:1rem;flex-shrink:0}
+.profile-divider{display:flex;align-items:center;gap:10px;margin:18px 0;font-family:'Space Mono',monospace;font-size:.65rem;color:var(--muted)}
+.profile-divider::before,.profile-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.new-profile-row{display:flex;gap:8px}
+.new-profile-row input{flex:1}
+.btn-create-profile{padding:10px 16px;background:var(--accent);border:none;border-radius:var(--radius);color:#fff;font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .15s}
+.btn-create-profile:hover{background:var(--accent2);color:#111}
+
+/* PROFILE INDICATOR in header */
+.profile-indicator{display:flex;align-items:center;gap:7px;cursor:pointer;padding:5px 10px;background:var(--surface);border:1px solid var(--border);border-radius:20px;transition:border-color .15s;flex-shrink:0}
+.profile-indicator:hover{border-color:var(--accent)}
+.profile-indicator .p-avatar{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700}
+.profile-indicator .p-name{font-family:'Space Mono',monospace;font-size:.62rem;color:var(--text);max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Delete profile btn */
+.btn-del-profile{background:none;border:none;cursor:pointer;color:var(--muted);font-size:.8rem;padding:2px 4px;opacity:0;transition:opacity .15s;flex-shrink:0}
+.profile-btn:hover .btn-del-profile{opacity:.6}
+.btn-del-profile:hover{opacity:1!important;color:var(--danger)}
+
+/* ── EXPORT MODAL ───────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.modal-overlay.hidden{display:none}
+.modal-box{width:100%;max-width:480px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px}
+.modal-title{font-size:1.1rem;font-weight:800;margin-bottom:4px}
+.modal-sub{font-family:'Space Mono',monospace;font-size:.68rem;color:var(--muted);margin-bottom:24px}
+.export-options{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.export-option{display:flex;align-items:center;gap:10px}
+.export-option label{font-size:.8rem;font-weight:600;color:var(--muted);min-width:90px;font-family:'Space Mono',monospace}
+.export-option select{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'Space Mono',monospace;font-size:.8rem;padding:8px 10px;outline:none;cursor:pointer}
+.export-option select:focus{border-color:var(--accent)}
+.export-preview{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:20px;font-family:'Space Mono',monospace;font-size:.65rem;color:var(--muted);line-height:1.7;max-height:120px;overflow-y:auto;white-space:pre}
+.export-preview-label{font-size:.6rem;font-family:'Space Mono',monospace;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.export-btns{display:flex;gap:10px}
+.btn-export-dl{flex:1;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;transition:background .15s}
+.btn-export-dl:hover{background:var(--accent2);color:#111}
+.btn-export-cancel{padding:12px 18px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--muted);font-family:'Space Mono',monospace;font-size:.8rem;cursor:pointer;transition:background .15s}
+.btn-export-cancel:hover{background:var(--border)}
+.export-stat{font-family:'Space Mono',monospace;font-size:.68rem;color:var(--muted);margin-bottom:16px}
+.export-stat span{color:var(--accent2);font-weight:700}
+</style>
+</head>
+<body>
+
+
+<!-- PROFILE SCREEN -->
+<div class="profile-screen" id="profile-screen">
+  <div class="profile-box">
+    <h2>Code<span>Log</span></h2>
+    <div class="sub">// who's grinding today?</div>
+    <div class="profile-list" id="profile-list"></div>
+    <div class="profile-divider">or create new</div>
+    <div class="new-profile-row">
+      <input type="text" id="input-new-profile" placeholder="Your name..." maxlength="20"/>
+      <button class="btn-create-profile" onclick="createProfile()">＋ Create</button>
+    </div>
+  </div>
+</div>
+
+<div class="loading-overlay" id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-text">connecting to cloud...</div>
+</div>
+
+<header>
+  <div class="header-left">
+    <h1>Code<span>Log</span></h1>
+    <span class="header-sub">// track what you grind</span>
+    <span class="sync-dot" id="sync-dot" title="Synced"></span>
+  </div>
+  <div class="profile-indicator" id="profile-indicator" onclick="showProfileScreen()" title="Switch profile">
+    <div class="p-avatar" id="header-avatar"></div>
+    <span class="p-name" id="header-pname">—</span>
+  </div>
+  <div class="header-stats">
+    <div class="hstat"><div class="hstat-num" id="h-today">0</div><div class="hstat-lbl">today</div></div>
+    <div class="hstat"><div class="hstat-num" id="h-streak">0</div><div class="hstat-lbl">streak</div></div>
+  </div>
+</header>
+
+<nav class="bottom-nav">
+  <button class="bnav-btn active" data-page="log"     onclick="switchPage('log',this)"><span class="icon">✏️</span><span>Log</span></button>
+  <button class="bnav-btn"        data-page="heatmap" onclick="switchPage('heatmap',this)"><span class="icon">📅</span><span>Calendar</span></button>
+  <button class="bnav-btn"        data-page="stats"   onclick="switchPage('stats',this)"><span class="icon">📊</span><span>Stats</span></button>
+  <button class="bnav-btn"        data-page="cats"    onclick="switchPage('cats',this)"><span class="icon">🏷️</span><span>Tags</span></button>
+</nav>
+
+<div class="container">
+  <div class="main-layout">
+    <div class="left-col">
+
+      <div class="card stats-card-desktop">
+        <div class="card-title">// overview</div>
+        <div class="stats-grid">
+          <div class="stat-box"><div class="stat-num" id="stat-today">0</div><div class="stat-label">today</div></div>
+          <div class="stat-box"><div class="stat-num" id="stat-total">0</div><div class="stat-label">total</div></div>
+          <div class="stat-box"><div class="stat-num" id="stat-streak">0</div><div class="stat-label">streak 🔥</div></div>
+          <div class="stat-box"><div class="stat-num" id="stat-week">0</div><div class="stat-label">this week</div></div>
+        </div>
+      </div>
+
+      <div class="card stats-card-desktop" style="margin-top:-4px">
+        <button class="btn-submit" style="margin-top:0;padding:10px;font-size:.8rem;background:var(--surface2);color:var(--accent);border:1px solid var(--border)" onclick="openExportModal()">↓ Export My Data</button>
+      </div>
+
+      <div class="page active" id="page-log">
+        <div class="card">
+          <div class="card-title">// log entry</div>
+          <div class="form-group">
+            <label>Problem / Link / Heading</label>
+            <input type="text" id="input-title" placeholder="e.g. Two Sum  or  https://leetcode.com/..."/>
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <div class="cat-pills" id="cat-pills"></div>
+          </div>
+          <div class="form-group">
+            <label>Notes <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+            <textarea id="input-note" placeholder="Approach, complexity, what you learned..."></textarea>
+          </div>
+          <button class="btn-submit" onclick="addEntry()">＋ Log It</button>
+        </div>
+      </div>
+
+      <div class="page" id="page-cats">
+        <div class="card">
+          <div class="card-title">// manage categories</div>
+          <div class="cat-manage-list" id="cat-manage-list"></div>
+          <div class="add-cat-row">
+            <input type="text" id="input-new-cat" placeholder="New category..." maxlength="24"/>
+            <button class="btn-add-cat" onclick="addCategory()">＋ Add</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="right-col">
+
+      <div class="page" id="page-heatmap">
+        <div class="card">
+          <div class="card-title">// activity heatmap</div>
+          <div class="filter-tabs" id="filter-tabs"></div>
+          <div class="heatmap-wrap">
+            <div class="heatmap-container">
+              <div class="heatmap-months" id="heatmap-months"></div>
+              <div class="heatmap-body">
+                <div class="day-labels">
+                  <div class="day-label"></div>
+                  <div class="day-label">Mon</div>
+                  <div class="day-label"></div>
+                  <div class="day-label">Wed</div>
+                  <div class="day-label"></div>
+                  <div class="day-label">Fri</div>
+                  <div class="day-label"></div>
+                </div>
+                <div class="heatmap-grid" id="heatmap-grid"></div>
+              </div>
+            </div>
+          </div>
+          <div class="legend">
+            <span>Less</span>
+            <div class="legend-cell" style="background:var(--green0)"></div>
+            <div class="legend-cell" style="background:var(--green1)"></div>
+            <div class="legend-cell" style="background:var(--green2)"></div>
+            <div class="legend-cell" style="background:var(--green3)"></div>
+            <div class="legend-cell" style="background:var(--green4)"></div>
+            <span>More</span>
+          </div>
+        </div>
+        <div class="card day-panel" id="day-panel">
+          <div class="day-panel-header">
+            <div>
+              <div class="day-panel-date" id="day-panel-date">—</div>
+              <div class="day-panel-count" id="day-panel-count"></div>
+            </div>
+            <button class="btn-close" onclick="closeDayPanel()">✕</button>
+          </div>
+          <div class="entry-list" id="entry-list"></div>
+        </div>
+      </div>
+
+      <div class="page" id="page-stats">
+        <div class="card">
+          <div class="card-title">// overview</div>
+          <div class="stats-grid">
+            <div class="stat-box"><div class="stat-num" id="m-today">0</div><div class="stat-label">today</div></div>
+            <div class="stat-box"><div class="stat-num" id="m-total">0</div><div class="stat-label">total</div></div>
+            <div class="stat-box"><div class="stat-num" id="m-streak">0</div><div class="stat-label">streak 🔥</div></div>
+            <div class="stat-box"><div class="stat-num" id="m-week">0</div><div class="stat-label">this week</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">// by category</div>
+          <div id="cat-breakdown"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">// export data</div>
+          <div class="export-stat">Your data belongs to you — export anytime as <span>CSV</span> or <span>JSON</span></div>
+          <button class="btn-submit" style="margin-top:0" onclick="openExportModal()">↓ Export My Data</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+<div class="toast"   id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { initializeFirestore, persistentLocalCache,
+         collection, addDoc, getDocs,
+         deleteDoc, doc, setDoc, query, where, orderBy, limit,
+         onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ── CONFIG ────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey:            "AIzaSyDyiEp0F7R-VvzAiuWZKCrKvJmtqEcomK0",
+  authDomain:        "devtrack-a611d.firebaseapp.com",
+  projectId:         "devtrack-a611d",
+  storageBucket:     "devtrack-a611d.firebasestorage.app",
+  messagingSenderId: "512121871414",
+  appId:             "1:512121871414:web:0895f4f85548e7a9300c97"
+};
+const app = initializeApp(firebaseConfig);
+// persistentLocalCache replaces the deprecated enableIndexedDbPersistence().
+// Bakes offline support directly into Firestore init — no separate async call needed.
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache()
+});
+console.log('[CodeLog] Firestore initialized with persistent local cache (IndexedDB)');
+
+// ── DEBUG FLAG ────────────────────────────────────────────
+// Set to false in production to silence high-frequency render logs.
+// Errors and warnings always log regardless of this flag.
+const DEBUG = true;
+
+// ── PALETTE ───────────────────────────────────────────────
+const CAT_PALETTE = [
+  {bg:'#1a3a5c',text:'#60c0f8'},{bg:'#2d1a4a',text:'#b07ef8'},
+  {bg:'#1a3a2a',text:'#5de88a'},{bg:'#3a1a20',text:'#f87060'},
+  {bg:'#2a2a10',text:'#e8d060'},{bg:'#1a2a3a',text:'#60a8f8'},
+  {bg:'#3a1a30',text:'#f860c0'},{bg:'#1a3a38',text:'#40d8c8'},
+];
+
+
+// ── PROFILE SYSTEM ───────────────────────────────────────
+// Profiles stored in localStorage — no auth needed.
+// Each profile gets a deterministic color from its name.
+// currentUser is set before any Firestore query runs.
+
+const PROFILE_COLORS = [
+  {bg:'#1a3a5c',text:'#60c0f8'},{bg:'#2d1a4a',text:'#b07ef8'},
+  {bg:'#1a3a2a',text:'#5de88a'},{bg:'#3a1a20',text:'#f87060'},
+  {bg:'#2a2a10',text:'#e8d060'},{bg:'#3a1a30',text:'#f860c0'},
+  {bg:'#1a3a38',text:'#40d8c8'},{bg:'#2a1a3a',text:'#d8a0f8'},
+];
+
+let currentUser = null;  // set by selectProfile() before sync starts
+let snapshotUnsub = null; // hold unsubscribe fn so we can swap listeners on profile switch
+
+function profileColor(name){
+  let hash=0; for(const c of name) hash=(hash*31+c.charCodeAt(0))&0xffff;
+  return PROFILE_COLORS[hash % PROFILE_COLORS.length];
+}
+function profileInitial(name){ return name.trim().charAt(0).toUpperCase(); }
+
+function loadProfiles(){ try{ return JSON.parse(localStorage.getItem('cl_profiles')||'[]'); }catch(e){ return []; } }
+function saveProfiles(list){ localStorage.setItem('cl_profiles', JSON.stringify(list)); }
+
+function renderProfileList(){
+  const list = document.getElementById('profile-list');
+  if(!list) return;
+  const profiles = loadProfiles();
+  const frag = document.createDocumentFragment();
+  if(!profiles.length){
+    const empty = document.createElement('div');
+    empty.style.cssText='text-align:center;padding:16px;font-family:Space Mono,monospace;font-size:.75rem;color:var(--muted)';
+    empty.textContent='No profiles yet — create one below';
+    frag.appendChild(empty);
+  }
+  profiles.forEach(name=>{
+    const col = profileColor(name);
+    const btn = document.createElement('button');
+    btn.className = 'profile-btn' + (name===currentUser?' active-profile':'');
+    btn.innerHTML = `
+      <div class="profile-avatar" style="background:${col.bg};color:${col.text}">${profileInitial(name)}</div>
+      <div class="profile-info">
+        <div class="profile-name">${name}</div>
+        <div class="profile-meta">tap to select</div>
+      </div>
+      ${name===currentUser?'<span class="profile-check">✓</span>':''}
+      <button class="btn-del-profile" title="Delete profile" onclick="event.stopPropagation();deleteProfile('${name}')">✕</button>
+    `;
+    btn.addEventListener('click', ()=>selectProfile(name));
+    frag.appendChild(btn);
+  });
+  list.innerHTML='';
+  list.appendChild(frag);
+}
+
+async function createProfile(){
+  const inp = document.getElementById('input-new-profile');
+  const name = inp.value.trim().replace(/\s+/g,' ');
+  if(!name){ showToastRaw('Enter a name first','error'); return; }
+  const profiles = loadProfiles();
+  if(profiles.length>=5){ showToastRaw('Max 5 profiles reached — delete one first','error'); return; }
+  // Local uniqueness check (fast)
+  if(profiles.find(p=>p.toLowerCase()===name.toLowerCase())){
+    showToastRaw('Username already taken — choose a different name','error'); return;
+  }
+  // Server-side uniqueness check against the users collection.
+  // Using a dedicated users/{name} doc is reliable — no entries needed to detect existence.
+  showToastRaw('Checking username…');
+  try {
+    const userDoc = await getDocs(query(collection(db,'users'), where('name','==',name), limit(1)));
+    if(!userDoc.empty){
+      showToastRaw('Username already in use on another device — choose a different name','error');
+      console.warn(`[CodeLog] createProfile — "${name}" rejected, already exists in users collection`);
+      return;
+    }
+  } catch(e){
+    // Network unavailable — fall through and allow creation optimistically
+    console.warn('[CodeLog] createProfile — server check failed (offline?), proceeding optimistically:', e.message);
+  }
+  profiles.push(name);
+  saveProfiles(profiles);
+  inp.value='';
+  // Write to users collection so other devices can detect this username
+  try {
+    // setDoc with username as doc ID — idempotent, prevents duplicate user docs
+    await setDoc(doc(db,'users',name), { name, createdAt: new Date().toISOString() });
+    console.log(`[CodeLog] createProfile — "${name}" registered in Firestore users/${name}`);
+  } catch(e){
+    // Non-fatal — localStorage profile still works, just won't block cross-device duplicates
+    console.warn('[CodeLog] createProfile — failed to write users doc (offline?):', e.message);
+  }
+  console.log(`[CodeLog] createProfile — "${name}" created`);
+  selectProfile(name);
+}
+
+function deleteProfile(name){
+  if(!confirm(`Delete profile "${name}"? Their entries stay in the database but won't be visible here.`)) return;
+  let profiles = loadProfiles().filter(p=>p!==name);
+  saveProfiles(profiles);
+  console.log(`[CodeLog] deleteProfile — "${name}" removed from local list`);
+  if(currentUser===name){
+    console.log(`[CodeLog] deleteProfile — "${name}" was active user, clearing session`);
+    currentUser=null;
+    localStorage.removeItem('cl_current_user');
+    if(snapshotUnsub){ snapshotUnsub(); snapshotUnsub=null; }
+    state.entries=[];
+  }
+  renderProfileList();
+  if(!currentUser) showProfileScreen();
+}
+
+function selectProfile(name){
+  currentUser = name;
+  localStorage.setItem('cl_current_user', name);
+  console.log(`[CodeLog] selectProfile — switching to "${name}"`);
+
+  // Update header indicator
+  const col = profileColor(name);
+  const av  = document.getElementById('header-avatar');
+  const pn  = document.getElementById('header-pname');
+  if(av){ av.textContent=profileInitial(name); av.style.background=col.bg; av.style.color=col.text; }
+  if(pn)  pn.textContent=name;
+
+  // Per-user categories key
+  loadCats();
+
+  // Hide profile screen, show app
+  const ps = document.getElementById('profile-screen');
+  if(ps) ps.classList.add('hidden');
+
+  // Unsubscribe previous listener if switching users mid-session
+  if(snapshotUnsub){ snapshotUnsub(); snapshotUnsub=null; state.entries=[]; }
+
+  // Reset and restart sync for new user
+  heatmapBuilt = false;
+  heatmapDirty = true;
+  cellCache = {};
+  console.log('[CodeLog] selectProfile — heatmap cache cleared, starting fresh sync');
+  startRealtimeSync();
+}
+
+function showProfileScreen(){
+  console.log('[CodeLog] showProfileScreen — showing profile picker');
+  renderProfileList();
+  const ps = document.getElementById('profile-screen');
+  if(ps) ps.classList.remove('hidden');
+}
+
+// Small toast that works before DOM cache is ready (used in profile screen)
+function showToastRaw(msg,type='success'){
+  const t=document.getElementById('toast');
+  if(!t) return;
+  t.textContent=msg;
+  t.style.borderColor=type==='error'?'var(--danger)':'var(--green3)';
+  t.style.color=type==='error'?'var(--danger)':'var(--green4)';
+  t.style.display='block';
+  setTimeout(()=>t.style.display='none',2500);
+}
+
+// ── DOM CACHE ─────────────────────────────────────────────
+// Queried once at startup — never call getElementById in hot paths.
+const DOM = {};
+function initDOMCache(){
+  console.log('[CodeLog] initDOMCache — caching DOM refs');
+  DOM.syncDot      = document.getElementById('sync-dot');
+  DOM.loader       = document.getElementById('loading-overlay');
+  DOM.tooltip      = document.getElementById('tooltip');
+  DOM.toast        = document.getElementById('toast');
+  DOM.heatmapGrid  = document.getElementById('heatmap-grid');
+  DOM.heatmapMonths= document.getElementById('heatmap-months');
+  DOM.filterTabs   = document.getElementById('filter-tabs');
+  DOM.catPills     = document.getElementById('cat-pills');
+  DOM.catManage    = document.getElementById('cat-manage-list');
+  DOM.entryList    = document.getElementById('entry-list');
+  DOM.dayPanel     = document.getElementById('day-panel');
+  DOM.dayPanelDate = document.getElementById('day-panel-date');
+  DOM.dayPanelCount= document.getElementById('day-panel-count');
+  DOM.catBreakdown = document.getElementById('cat-breakdown');
+  DOM.inputTitle   = document.getElementById('input-title');
+  DOM.inputNote    = document.getElementById('input-note');
+  DOM.inputNewCat  = document.getElementById('input-new-cat');
+  // Pre-resolve page elements by name so switchPage never calls getElementById
+  for(const [k,v] of Object.entries(PAGE_MAP)) PAGE_EL[k]=document.getElementById(v);
+  console.log('[CodeLog] DOM cache ready — pages:', Object.keys(PAGE_EL));
+}
+
+// ── STATE ─────────────────────────────────────────────────
+const DEFAULTS = ['DSA','Web Dev','Game Dev','AI/ML'];
+let state = {
+  entries:     [],          // local cache — source of truth for UI
+  categories:  [...DEFAULTS],
+  selectedCat: 'DSA',
+  filterCat:   'all',
+};
+let activePage      = 'log';
+let openDayPanelDate = null;  // track which date is open so we can refresh it
+
+const PAGE_MAP = {log:'page-log',heatmap:'page-heatmap',stats:'page-stats',cats:'page-cats'};
+let PAGE_EL = {};  // populated in initDOMCache
+
+// categories live in localStorage (lightweight, device-specific but rarely change)
+function loadCats(){
+  try{
+    const key = currentUser ? `cl_cats_${currentUser}` : 'cl_cats';
+    const r=localStorage.getItem(key);
+    if(r){ state.categories=JSON.parse(r); console.log(`[CodeLog] loadCats — loaded for user "${currentUser}":`, state.categories); }
+    else  { state.categories=[...DEFAULTS]; console.log('[CodeLog] loadCats — no saved categories, using defaults'); }
+  }catch(e){ console.error('[CodeLog] loadCats — parse error:', e); }
+}
+function saveCats(){
+  const key = currentUser ? `cl_cats_${currentUser}` : 'cl_cats';
+  localStorage.setItem(key, JSON.stringify(state.categories));
+  console.log(`[CodeLog] saveCats — saved ${state.categories.length} categories for user "${currentUser}"`);
+}
+
+// ── HELPERS ───────────────────────────────────────────────
+// TODAY cached at session start and refreshed if the calendar day rolls over
+let _today = new Date().toISOString().slice(0,10);
+function todayStr(){
+  // Refresh if midnight has passed since last call
+  const now = new Date().toISOString().slice(0,10);
+  if(now !== _today){ _today=now; heatmapBuilt=false; heatmapDirty=true; } // day rolled — rebuild grid
+  return _today;
+}
+function dateLabel(ds){ return new Date(ds+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}); }
+function catColor(cat){ const i=state.categories.indexOf(cat)%CAT_PALETTE.length; return CAT_PALETTE[Math.max(0,i)]; }
+function setEl(id,v)  { const e=document.getElementById(id); if(e) e.textContent=v; }
+function uid()        { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
+
+function setSyncDot(s){
+  const d=DOM.syncDot; if(!d) return;
+  d.className='sync-dot'+(s==='syncing'?' syncing':s==='error'?' error':'');
+  d.title=s==='syncing'?'Syncing…':s==='error'?'Sync error':'Synced ✓';
+}
+function hideLoader(){
+  if(DOM.loader) console.log('[CodeLog] hideLoader — first data rendered, removing loading screen');
+  const ol=DOM.loader;
+  if(ol){ ol.classList.add('hidden'); setTimeout(()=>{ ol.remove(); DOM.loader=null; },400); }
+}
+
+// ── PRECOMPUTED INDEXES ──────────────────────────────────
+// Built once per snapshot batch. O(n) build → O(1) lookups everywhere.
+let entriesByDate     = {};  // { 'YYYY-MM-DD': [entry, ...] }
+let entriesByCategory = {};  // { 'DSA': [entry, ...] }
+
+function buildIndexes(){
+  const t0=performance.now();
+  entriesByDate = {}; entriesByCategory = {};
+  for(const e of state.entries){
+    (entriesByDate[e.date]         = entriesByDate[e.date]         || []).push(e);
+    (entriesByCategory[e.category] = entriesByCategory[e.category] || []).push(e);
+  }
+  if(DEBUG) console.log(`[CodeLog] buildIndexes — ${state.entries.length} entries indexed in ${(performance.now()-t0).toFixed(2)}ms`);
+}
+
+function buildCountMap(){
+  // Uses precomputed indexes — no .filter() scan
+  const map = {};
+  if(state.filterCat === 'all'){
+    for(const [date,entries] of Object.entries(entriesByDate))
+      map[date] = entries.length;
+  } else {
+    for(const e of (entriesByCategory[state.filterCat] || []))
+      map[e.date] = (map[e.date]||0)+1;
+  }
+  return map;
+}
+
+// ── DEBOUNCE ─────────────────────────────────────────────
+// Snapshot can fire multiple times rapidly (offline→online reconciliation).
+// Batch all pending renders into one 50ms window.
+let renderTimer;
+let heatmapDirty    = true;  // true = data changed, heatmap needs repaint
+let countMapCache   = {};   // built once per scheduleRender, reused in hover & renderHeatmap
+
+function scheduleRender(){
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(()=>{
+    if(DEBUG) console.log('[CodeLog] scheduleRender — batch fired, rebuilding indexes + stats');
+    buildIndexes();
+    countMapCache = buildCountMap();  // build once — reused by renderHeatmap & tooltip hover
+    renderStats();                    // lightweight — runs immediately in the timeout
+    // Heavy DOM work deferred to next paint via rAF — keeps the UI thread free
+    requestAnimationFrame(()=>{
+      const heatmapVisible = activePage==='heatmap' || window.innerWidth>=600;
+      if(heatmapVisible){
+        renderHeatmap();
+        heatmapDirty = false;
+      }
+      if(openDayPanelDate) showDayPanel(openDayPanelDate);
+      hideLoader();
+    });
+  }, 50);
+}
+
+// ── REAL-TIME LISTENER ────────────────────────────────────
+// onSnapshot fires instantly from Firestore local cache on repeat visits.
+function startRealtimeSync(){
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate()-365);
+  const q = query(
+    collection(db,'entries'),
+    where('user','==',currentUser),
+    where('date','>=',cutoff.toISOString().slice(0,10)),
+    orderBy('date','desc')
+  );
+  console.log(`[CodeLog] startRealtimeSync — listening for user: "${currentUser}"`);
+
+  snapshotUnsub = onSnapshot(q,
+    (snap) => {
+      const count = snap.docs.length;
+      const fromCache = snap.metadata.fromCache;
+      console.log(`[CodeLog] snapshot received — ${count} entries | source: ${fromCache?'cache':'server'}`);
+      state.entries = snap.docs.map(d=>({id:d.id,...d.data()}));
+      setSyncDot('ok');
+      heatmapDirty = true;
+      scheduleRender();
+    },
+    (err) => {
+      console.error('[CodeLog] snapshot error:', err);
+      setSyncDot('error');
+      showToast('Sync error — check connection','error');
+      hideLoader();
+    }
+  );
+}
+
+// ── ADD ENTRY — optimistic ────────────────────────────────
+// 1. Clear the form & show toast IMMEDIATELY (feels instant)
+// 2. addDoc fires in background — onSnapshot auto-updates the UI when confirmed
+async function addEntry(){
+  const titleEl = DOM.inputTitle;
+  const noteEl  = DOM.inputNote;
+  const title   = titleEl.value.trim();
+  if(!title){ showToast('Enter a problem or link first','error'); return; }
+
+  const note = noteEl.value.trim();
+
+  console.log(`[CodeLog] addEntry — optimistic UI update, title: "${title}", category: ${state.selectedCat}`);
+  // ── Instant UI feedback ──
+  titleEl.value = '';
+  noteEl.value  = '';
+  showToast('Logged! 🔥');
+
+  // ── Background Firestore write ──
+  setSyncDot('syncing');
+  try {
+    await addDoc(collection(db,'entries'),{
+      title,
+      category:  state.selectedCat,
+      note,
+      date:      todayStr(),
+      timestamp: new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),
+      user:      currentUser,
+    });
+    console.log('[CodeLog] addEntry — Firestore write confirmed');
+  } catch(e){
+    console.error('[CodeLog] addEntry — Firestore write failed:', e);
+    setSyncDot('error');
+    showToast('Save failed — check connection','error');
+    // Restore the form values so user doesn't lose their input
+    titleEl.value = title;
+    noteEl.value  = note;
+  }
+}
+
+// ── DELETE ENTRY — optimistic ─────────────────────────────
+// 1. Remove from local cache & re-render IMMEDIATELY
+// 2. deleteDoc fires in background
+function deleteEntry(id){
+  console.log(`[CodeLog] deleteEntry — optimistic remove id: ${id}`);
+  // Optimistic remove — rebuild indexes immediately, no full renderAll
+  state.entries = state.entries.filter(e=>e.id!==id);
+  buildIndexes();
+  countMapCache = buildCountMap();  // keep cache fresh on optimistic delete
+  renderHeatmap();
+  renderStats();
+  if(openDayPanelDate) showDayPanel(openDayPanelDate);
+
+  // Background delete
+  setSyncDot('syncing');
+  deleteDoc(doc(db,'entries',id))
+    .then(()=>{ setSyncDot('ok'); console.log(`[CodeLog] deleteEntry — Firestore confirmed id: ${id}`); })
+    .catch(err=>{
+      console.error('[CodeLog] deleteEntry — Firestore failed:', err);
+      setSyncDot('error');
+      showToast('Delete failed — will retry on reload','error');
+      // onSnapshot will restore the entry if delete failed
+    });
+}
+
+// ── PAGE SWITCH ───────────────────────────────────────────
+function switchPage(page,btn){
+  if(DEBUG) console.log(`[CodeLog] switchPage — ${activePage} → ${page}`);
+  Object.values(PAGE_EL).forEach(p=>p.classList.remove('active'));
+  const el=PAGE_EL[page]; if(el) el.classList.add('active');
+  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  activePage=page;
+  // Lazy heatmap: render now if it was skipped while calendar page was hidden
+  if(page==='heatmap' && heatmapDirty){ renderHeatmap(); heatmapDirty=false; }
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── CATEGORIES ────────────────────────────────────────────
+function renderCatPills(){
+  const c=DOM.catPills; c.innerHTML='';
+  const frag=document.createDocumentFragment();
+  state.categories.forEach(cat=>{
+    const col=catColor(cat),p=document.createElement('div');
+    p.className='cat-pill'+(state.selectedCat===cat?' selected':'');
+    p.textContent=cat; p.style.background=col.bg; p.style.color=col.text;
+    p.style.borderColor=state.selectedCat===cat?col.text:'transparent';
+    p.onclick=()=>{ state.selectedCat=cat; renderCatPills(); };
+    frag.appendChild(p);
+  });
+  c.appendChild(frag);
+}
+function renderCatManage(){
+  const c=DOM.catManage; c.innerHTML='';
+  const frag=document.createDocumentFragment();
+  state.categories.forEach(cat=>{
+    const col=catColor(cat),item=document.createElement('div');
+    item.className='cat-manage-item'; item.style.background=col.bg; item.style.color=col.text;
+    item.innerHTML=`<span>${cat}</span>`;
+    if(!DEFAULTS.includes(cat)){
+      const btn=document.createElement('button'); btn.className='btn-del-cat';
+      btn.textContent='✕'; btn.style.color=col.text; btn.onclick=()=>deleteCat(cat);
+      item.appendChild(btn);
+    }
+    frag.appendChild(item);
+  });
+  c.appendChild(frag);
+}
+function addCategory(){
+  const inp=DOM.inputNewCat,name=inp.value.trim();
+  if(!name) return;
+  if(state.categories.find(c=>c.toLowerCase()===name.toLowerCase())){ showToast('Already exists!','error'); return; }
+  state.categories.push(name); saveCats(); inp.value=''; renderAll();
+  console.log(`[CodeLog] addCategory — "${name}" added, total: ${state.categories.length}`);
+  showToast(`"${name}" added ✓`);
+}
+function deleteCat(cat){
+  if(!confirm(`Delete "${cat}"? Entries keep their tag.`)) return;
+  state.categories=state.categories.filter(c=>c!==cat);
+  if(state.selectedCat===cat) state.selectedCat=state.categories[0];
+  if(state.filterCat===cat)   state.filterCat='all';
+  saveCats();
+  console.log(`[CodeLog] deleteCat — "${cat}" removed, remaining: ${state.categories.length}`);
+  renderAll();
+}
+function renderFilterTabs(){
+  const c=DOM.filterTabs; c.innerHTML='';
+  const frag=document.createDocumentFragment();
+  ['all',...state.categories].forEach(t=>{
+    const btn=document.createElement('button');
+    btn.className='filter-tab'+(state.filterCat===t?' active':'');
+    btn.textContent=t==='all'?'All':t;
+    btn.onclick=()=>{ state.filterCat=t; countMapCache=buildCountMap(); renderFilterTabs(); renderHeatmap(); };
+    frag.appendChild(btn);
+  });
+  c.appendChild(frag);
+}
+
+// ── CONSTANTS ────────────────────────────────────────────
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// ── HEATMAP — DOM CACHED ─────────────────────────────────
+// Grid is built ONCE into cellCache. On subsequent updates we only
+// update className on existing nodes — no DOM create/destroy.
+let cellCache = {};       // { 'YYYY-MM-DD': DOMElement }
+let heatmapBuilt = false; // true after first full build
+
+function buildHeatmapDOM(){
+  const t0=performance.now();
+  console.log('[CodeLog] buildHeatmapDOM — building 365-cell grid (runs once)');
+  // Full build — runs once per session (or if date rolls over midnight)
+  const grid=DOM.heatmapGrid, mRow=DOM.heatmapMonths;
+  grid.innerHTML=''; mRow.innerHTML=''; cellCache={};
+  const gridFrag=document.createDocumentFragment();
+  const mRowFrag=document.createDocumentFragment();
+  const todayISO=todayStr();
+  const startDate=new Date();
+  startDate.setDate(startDate.getDate()-364);
+  startDate.setDate(startDate.getDate()-startDate.getDay());
+  let curMonth=-1, col=mkCol(), wIdx=0, mPos=[];
+  const cur=new Date(startDate), today=new Date();
+  while(cur<=today){
+    const dow=cur.getDay();
+    if(dow===0){ if(col.children.length) gridFrag.appendChild(col); col=mkCol(); wIdx++; }
+    const ds=cur.toISOString().slice(0,10);
+    const m=cur.getMonth();
+    if(m!==curMonth){ curMonth=m; mPos.push({week:wIdx,month:m}); }
+    if(wIdx===0&&dow>0&&col.children.length===0){
+      for(let i=0;i<dow;i++){ const s=document.createElement('div'); s.className='heatmap-cell'; s.style.visibility='hidden'; col.appendChild(s); }
+    }
+    const cell=document.createElement('div');
+    cell.className='heatmap-cell'+(ds===todayISO?' today':'');
+    // Attach events once — capture ds by closure
+    const capturedDs=ds;
+    cell.addEventListener('mouseenter',ev=>showTip(ev,capturedDs,countMapCache[capturedDs]||0),{passive:true});
+    cell.addEventListener('mouseleave',hideTip,{passive:true});
+    cell.addEventListener('click',()=>{
+      showDayPanel(capturedDs);
+      if(window.innerWidth<600) switchPage('heatmap',document.querySelector('[data-page="heatmap"]'));
+    });
+    cellCache[ds]=cell;
+    col.appendChild(cell);
+    cur.setDate(cur.getDate()+1);
+  }
+  if(col.children.length) gridFrag.appendChild(col);
+  grid.appendChild(gridFrag); // single reflow
+  const cellW=16;
+  mPos.forEach((ml,i)=>{
+    const lbl=document.createElement('span'); lbl.className='month-label'; lbl.textContent=MONTHS[ml.month];
+    const span=(mPos[i+1]?.week??wIdx+1)-ml.week;
+    lbl.style.cssText=`width:${span*cellW}px;display:inline-block;overflow:hidden`;
+    mRowFrag.appendChild(lbl);
+  });
+  mRow.appendChild(mRowFrag); // single reflow
+  heatmapBuilt=true;
+  if(DEBUG) console.log(`[CodeLog] buildHeatmapDOM — done in ${(performance.now()-t0).toFixed(2)}ms, ${Object.keys(cellCache).length} cells cached`);
+}
+
+function renderHeatmap(){
+  const t0=performance.now();
+  // Build DOM structure once; afterwards only update colors
+  if(!heatmapBuilt) buildHeatmapDOM();
+  const countMap=countMapCache;
+  const maxCount=Math.max(1,...Object.values(countMap),1);
+  const todayISO=todayStr();
+  let activeCells=0;
+  for(const [ds,cell] of Object.entries(cellCache)){
+    const count=countMap[ds]||0;
+    if(count>0) activeCells++;
+    // Reset to base class, preserve today outline
+    cell.className='heatmap-cell'+(ds===todayISO?' today':'');
+    if(count>0){
+      if     (count<=Math.ceil(maxCount*.25)) cell.classList.add('l1');
+      else if(count<=Math.ceil(maxCount*.5))  cell.classList.add('l2');
+      else if(count<=Math.ceil(maxCount*.75)) cell.classList.add('l3');
+      else cell.classList.add('l4');
+    }
+  }
+  if(DEBUG) console.log(`[CodeLog] renderHeatmap — ${activeCells} active days painted in ${(performance.now()-t0).toFixed(2)}ms`);
+}
+function mkCol(){ const d=document.createElement('div'); d.className='heatmap-col'; return d; }
+
+// ── TOOLTIP ───────────────────────────────────────────────
+function showTip(e,ds,count){
+  const t=DOM.tooltip;
+  t.textContent=`${dateLabel(ds)} — ${count} entr${count===1?'y':'ies'}`;
+  t.style.display='block'; t.style.left=(e.clientX+14)+'px'; t.style.top=(e.clientY-32)+'px';
+}
+function hideTip(){ DOM.tooltip.style.display='none'; }
+
+// ── DAY PANEL ─────────────────────────────────────────────
+function showDayPanel(ds){
+  openDayPanelDate=ds;
+  const panel=DOM.dayPanel;
+  const dateEl=DOM.dayPanelDate;
+  const countEl=DOM.dayPanelCount;
+  const listEl=DOM.entryList;
+  dateEl.textContent=dateLabel(ds); dateEl.dataset.date=ds;
+  // Use precomputed index — O(1) lookup instead of O(n) filter
+  const dayEntries = entriesByDate[ds] || [];
+  countEl.textContent=`${dayEntries.length} entr${dayEntries.length===1?'y':'ies'}`;
+  listEl.innerHTML='';
+  if(!dayEntries.length){
+    listEl.innerHTML='<div class="empty-state">No entries for this day.</div>';
+    panel.classList.add('active'); return;
+  }
+  // Group using category index directly
+  const grouped={};
+  dayEntries.forEach(e=>{ (grouped[e.category]=grouped[e.category]||[]).push(e); });
+  const listFrag=document.createDocumentFragment();
+  Object.entries(grouped).forEach(([cat,entries])=>{
+    const col=catColor(cat),hdr=document.createElement('div');
+    hdr.className='cat-group-header'; hdr.style.color=col.text;
+    hdr.textContent=`${cat}  (${entries.length})`; listFrag.appendChild(hdr);
+    entries.forEach(e=>{
+      const isLink=e.title.startsWith('http://')||e.title.startsWith('https://');
+      const titleHtml=isLink?`<a href="${e.title}" target="_blank" rel="noopener">${e.title}</a>`:e.title;
+      const item=document.createElement('div'); item.className='entry-item'; item.style.borderLeftColor=col.text;
+      item.innerHTML=`
+        <div class="entry-item-top">
+          <div class="entry-title">${titleHtml}</div>
+          <button class="btn-delete-entry" title="Delete">✕</button>
+        </div>
+        ${e.note?`<div class="entry-note">${e.note}</div>`:''}
+        <div class="entry-time">logged at ${e.timestamp}</div>`;
+      item.querySelector('.btn-delete-entry').addEventListener('click',()=>deleteEntry(e.id));
+      listFrag.appendChild(item);
+    });
+  });
+  listEl.appendChild(listFrag); // single reflow
+  panel.classList.add('active');
+  panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function closeDayPanel(){
+  DOM.dayPanel.classList.remove('active');
+  openDayPanelDate=null;
+}
+
+// ── STATS ─────────────────────────────────────────────────
+function renderStats(){
+  // All lookups use precomputed indexes — zero .filter() scans
+  const today=todayStr();
+  const todayCount=(entriesByDate[today]||[]).length;
+  const total=state.entries.length;
+  const now=new Date(),dow=now.getDay()||7,mon=new Date(now);
+  mon.setDate(now.getDate()-(dow-1));
+  const monStr=mon.toISOString().slice(0,10);
+  // Week count: sum days from Monday onwards using date index keys
+  const weekCount=Object.keys(entriesByDate).filter(d=>d>=monStr).reduce((s,d)=>s+(entriesByDate[d].length),0);
+  let streak=0,d=new Date();
+  if(!todayCount) d.setDate(d.getDate()-1);
+  // entriesByDate only holds 365 days of data — loop is naturally bounded
+  let ds=d.toISOString().slice(0,10);
+  while(entriesByDate[ds]?.length){
+    streak++;
+    d.setDate(d.getDate()-1);
+    ds=d.toISOString().slice(0,10);
+  }
+  ['stat-today','m-today','h-today'].forEach(id=>setEl(id,todayCount));
+  ['stat-total','m-total'].forEach(id=>setEl(id,total));
+  ['stat-streak','m-streak','h-streak'].forEach(id=>setEl(id,streak));
+  ['stat-week','m-week'].forEach(id=>setEl(id,weekCount));
+  const bd=DOM.catBreakdown; if(!bd) return; bd.innerHTML='';
+  const bdFrag=document.createDocumentFragment();
+  state.categories.forEach(cat=>{
+    // Use category index — O(1) lookup
+    const count=(entriesByCategory[cat]||[]).length;
+    const col=catColor(cat),pct=total?Math.round(count/total*100):0;
+    const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;gap:12px;margin-bottom:10px';
+    row.innerHTML=`<span style="font-family:'Space Mono',monospace;font-size:.72rem;color:${col.text};min-width:80px">${cat}</span><div style="flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${col.text};border-radius:4px;transition:width .4s"></div></div><span style="font-family:'Space Mono',monospace;font-size:.72rem;color:var(--muted);min-width:28px;text-align:right">${count}</span>`;
+    bdFrag.appendChild(row);
+  });
+  bd.appendChild(bdFrag);
+}
+
+// ── TOAST ─────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg,type='success'){
+  const t=DOM.toast;
+  t.textContent=msg;
+  t.style.borderColor=type==='error'?'var(--danger)':'var(--green3)';
+  t.style.color      =type==='error'?'var(--danger)':'var(--green4)';
+  t.style.display='block'; clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.style.display='none',2500);
+}
+
+
+// ── EXPORT SYSTEM ────────────────────────────────────────
+function getFilteredExportEntries(){
+  const fmt    = document.getElementById('export-format').value;
+  const filter = document.getElementById('export-filter').value;
+  const range  = document.getElementById('export-range').value;
+
+  let entries = [...state.entries];
+
+  // Category filter
+  if(filter !== 'all') entries = entries.filter(e=>e.category===filter);
+
+  // Date range filter
+  if(range !== 'all'){
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - parseInt(range));
+    const cutoffStr = cutoff.toISOString().slice(0,10);
+    entries = entries.filter(e=>e.date >= cutoffStr);
+  }
+
+  // Sort oldest first for export readability
+  entries.sort((a,b)=>a.date.localeCompare(b.date));
+  return entries;
+}
+
+function escapeCSV(val=''){
+  // Replace carriage returns and newlines with a space, then quote if needed
+  let s = String(val);
+  s = s.split('\r').join(' ').split('\n').join(' ');
+  return (s.includes(',') || s.includes('"')) ? '"' + s.split('"').join('""') + '"' : s;
+}
+
+function buildCSV(entries){
+  const header = ['Date','Problem / Link','Category','Notes','Time Logged'];
+  const rows   = entries.map(e=>[
+    escapeCSV(e.date),
+    escapeCSV(e.title),
+    escapeCSV(e.category),
+    escapeCSV(e.note || ''),
+    escapeCSV(e.timestamp || ''),
+  ]);
+  return [header, ...rows].map(r=>r.join(',')).join('\n');
+}
+
+function buildJSON(entries){
+  const clean = entries.map(e=>({
+    date:      e.date,
+    title:     e.title,
+    category:  e.category,
+    note:      e.note || '',
+    timestamp: e.timestamp || '',
+  }));
+  return JSON.stringify({ user: currentUser, exported: new Date().toISOString(), entries: clean }, null, 2);
+}
+
+function updateExportPreview(){
+  const fmt     = document.getElementById('export-format').value;
+  const entries = getFilteredExportEntries();
+  const preview = document.getElementById('export-preview');
+  const countEl = document.getElementById('export-count');
+  if(DEBUG) console.log(`[CodeLog] updateExportPreview — format: ${fmt}, entries matching: ${entries.length}`);
+
+  countEl.innerHTML = `<span>${entries.length}</span> entr${entries.length===1?'y':'ies'} match your filters`;
+
+  if(!entries.length){ preview.textContent = '(no entries match these filters)'; return; }
+
+  const sample = entries.slice(0, 3);
+  if(fmt === 'csv'){
+    preview.textContent = buildCSV(sample);
+  } else {
+    // Show condensed JSON preview
+    const obj = { entries: sample.map(e=>({ date:e.date, title:e.title, category:e.category })) };
+    preview.textContent = JSON.stringify(obj, null, 2) + (entries.length>3?'\n  ...':'');
+  }
+}
+
+function openExportModal(){
+  // Populate category filter dropdown with current user's categories
+  const sel = document.getElementById('export-filter');
+  sel.innerHTML = '<option value="all">All categories</option>';
+  state.categories.forEach(cat=>{
+    const opt = document.createElement('option');
+    opt.value = cat; opt.textContent = cat;
+    sel.appendChild(opt);
+  });
+
+  const sub = document.getElementById('export-modal-sub');
+  sub.textContent = `// exporting data for ${currentUser}`;
+
+  updateExportPreview();
+  document.getElementById('export-modal').classList.remove('hidden');
+  console.log('[CodeLog] openExportModal — opened for user:', currentUser);
+}
+
+function closeExportModal(){
+  document.getElementById('export-modal').classList.add('hidden');
+  console.log('[CodeLog] closeExportModal — modal dismissed');
+}
+
+function downloadExport(){
+  const fmt     = document.getElementById('export-format').value;
+  const entries = getFilteredExportEntries();
+
+  if(!entries.length){ showToast('No entries to export','error'); return; }
+
+  const isCSV    = fmt === 'csv';
+  const content  = isCSV ? buildCSV(entries) : buildJSON(entries);
+  const mimeType = isCSV ? 'text/csv' : 'application/json';
+  const dateStr  = new Date().toISOString().slice(0,10);
+  const filename = `codelog_${currentUser}_${dateStr}.${fmt}`;
+
+  // Create blob and trigger download
+  const blob = new Blob([content], { type: mimeType });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  console.log(`[CodeLog] downloadExport — ${entries.length} entries exported as ${filename}`);
+  showToast(`Exported ${entries.length} entries as ${fmt.toUpperCase()} ✓`);
+  closeExportModal();
+}
+
+// initExportEvents — wires modal overlay dismiss; called after DOM is ready
+function initExportEvents(){
+  const modal = document.getElementById('export-modal');
+  if(!modal){ console.error('[CodeLog] initExportEvents — export-modal element not found'); return; }
+  modal.addEventListener('click', e=>{ if(e.target===modal) closeExportModal(); });
+  console.log('[CodeLog] initExportEvents — overlay dismiss listener attached');
+}
+// ── RENDER ALL ────────────────────────────────────────────
+function renderAll(){ renderCatPills(); renderCatManage(); renderFilterTabs(); renderHeatmap(); renderStats(); }
+
+// ── RESIZE ────────────────────────────────────────────────
+function handleResize(){
+  const layout = window.innerWidth>=900?'desktop':window.innerWidth>=600?'tablet':'mobile';
+  if(DEBUG) console.log(`[CodeLog] handleResize — ${window.innerWidth}px → ${layout}`);
+  if(window.innerWidth>=600){ Object.values(PAGE_EL).forEach(p=>p.classList.add('active')); }
+  else{ Object.values(PAGE_EL).forEach(p=>p.classList.remove('active')); const el=PAGE_EL[activePage]; if(el) el.classList.add('active'); }
+}
+window.addEventListener('resize',handleResize,{passive:true});
+
+// ── EXPOSE to HTML onclick ────────────────────────────────
+window.switchPage       = switchPage;
+window.addEntry         = addEntry;
+window.addCategory      = addCategory;
+window.closeDayPanel    = closeDayPanel;
+window.createProfile    = createProfile;
+window.deleteProfile    = deleteProfile;
+window.showProfileScreen= showProfileScreen;
+window.openExportModal   = openExportModal;
+window.closeExportModal  = closeExportModal;
+window.downloadExport    = downloadExport;
+window.updateExportPreview=updateExportPreview;
+
+// ── INIT ──────────────────────────────────────────────────
+initDOMCache();  // cache all DOM refs before anything else
+initExportEvents(); // wire export modal overlay dismiss
+// ── KEYBOARD — must follow initDOMCache so DOM.* refs exist ──
+DOM.inputNewCat.addEventListener('keydown',e=>{ if(e.key==='Enter') addCategory(); });
+DOM.inputTitle.addEventListener('keydown',  e=>{ if(e.key==='Enter') addEntry(); });
+// Profile input enter key
+document.getElementById('input-new-profile').addEventListener('keydown',e=>{ if(e.key==='Enter') createProfile(); });
+handleResize();
+renderCatPills();
+renderCatManage();
+renderFilterTabs();
+
+// Check for returning user — skip profile screen if already set
+const savedUser = localStorage.getItem('cl_current_user');
+const knownProfiles = loadProfiles();
+if(savedUser && knownProfiles.includes(savedUser)){
+  console.log(`[CodeLog] init — returning user "${savedUser}", skipping profile screen`);
+  selectProfile(savedUser);  // restores session, starts sync
+} else {
+  console.log('[CodeLog] init — no saved user, showing profile screen');
+  showProfileScreen();
+  // Hide loading overlay since we're showing profile screen instead
+  const ol=document.getElementById('loading-overlay');
+  if(ol) ol.remove();
+}
+</script>
+
+<!-- EXPORT MODAL -->
+<div class="modal-overlay hidden" id="export-modal">
+  <div class="modal-box">
+    <div class="modal-title">Export Data</div>
+    <div class="modal-sub" id="export-modal-sub">// exporting your entries</div>
+    <div class="export-stat" id="export-count"></div>
+    <div class="export-options">
+      <div class="export-option">
+        <label>Format</label>
+        <select id="export-format" onchange="updateExportPreview()">
+          <option value="csv">CSV — spreadsheets, Notion, Google Sheets</option>
+          <option value="json">JSON — developers, custom scripts</option>
+        </select>
+      </div>
+      <div class="export-option">
+        <label>Filter</label>
+        <select id="export-filter" onchange="updateExportPreview()">
+          <option value="all">All categories</option>
+        </select>
+      </div>
+      <div class="export-option">
+        <label>Range</label>
+        <select id="export-range" onchange="updateExportPreview()">
+          <option value="all">All time</option>
+          <option value="30">Last 30 days</option>
+          <option value="90">Last 90 days</option>
+          <option value="365">Last 365 days</option>
+        </select>
+      </div>
+    </div>
+    <div class="export-preview-label">// preview (first 3 rows)</div>
+    <div class="export-preview" id="export-preview"></div>
+    <div class="export-btns">
+      <button class="btn-export-dl" onclick="downloadExport()">↓ Download</button>
+      <button class="btn-export-cancel" onclick="closeExportModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
