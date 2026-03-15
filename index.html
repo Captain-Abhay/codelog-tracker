@@ -35,25 +35,6 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden}
 
-/* MOBILE CONSOLE OVERLAY */
-#mobile-console{position:fixed;bottom:0;left:0;right:0;height:40vh;background:rgba(0,0,0,.92);border-top:2px solid var(--accent);z-index:9999;display:flex;flex-direction:column;font-family:'Space Mono',monospace;font-size:.6rem}
-#mobile-console-bar{display:flex;align-items:center;justify-content:space-between;padding:5px 10px;background:rgba(124,107,255,.2);border-bottom:1px solid var(--border);flex-shrink:0}
-#mobile-console-bar span{color:var(--accent2);font-size:.62rem;font-weight:700}
-#mobile-console-bar button{background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 8px;font-family:'Space Mono',monospace;font-size:.58rem;cursor:pointer}
-#mobile-console-bar button:active{background:var(--border)}
-#mobile-console-log{flex:1;overflow-y:auto;padding:6px 8px;display:flex;flex-direction:column;gap:3px}
-.mc-entry{display:flex;gap:6px;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.04);word-break:break-all;line-height:1.4}
-.mc-entry.log{color:#b0c4de}
-.mc-entry.warn{color:#e8d060}
-.mc-entry.error{color:#ff5a7a}
-.mc-entry.info{color:#5de88a}
-.mc-time{color:var(--muted);flex-shrink:0;font-size:.55rem;margin-top:1px}
-.mc-badge{flex-shrink:0;font-size:.55rem;padding:0 4px;border-radius:3px;margin-top:1px;height:fit-content}
-.mc-badge.log{background:rgba(176,196,222,.15);color:#b0c4de}
-.mc-badge.warn{background:rgba(232,208,96,.15);color:#e8d060}
-.mc-badge.error{background:rgba(255,90,122,.2);color:#ff5a7a}
-.mc-badge.info{background:rgba(93,232,138,.15);color:#5de88a}
-
 /* HEADER */
 header{position:sticky;top:0;z-index:100;background:rgba(10,10,15,0.93);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:13px 18px;display:flex;align-items:center;justify-content:space-between}
 .header-left{display:flex;align-items:baseline;gap:12px}
@@ -133,6 +114,11 @@ textarea{resize:vertical;min-height:72px}
 
 /* FILTER TABS */
 .filter-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.year-nav{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.year-nav-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:4px 10px;font-family:'Space Mono',monospace;font-size:.75rem;cursor:pointer;transition:all .15s;line-height:1}
+.year-nav-btn:hover{border-color:var(--accent);color:var(--accent)}
+.year-nav-btn:disabled{opacity:.25;cursor:default;pointer-events:none}
+.year-label{font-family:'Space Mono',monospace;font-size:.85rem;font-weight:700;color:var(--accent2);min-width:40px;text-align:center}
 .filter-tab{padding:7px 14px;border-radius:20px;font-size:.7rem;font-family:'Space Mono',monospace;font-weight:700;cursor:pointer;border:2px solid var(--border);background:transparent;color:var(--muted);transition:all .15s}
 .filter-tab.active{border-color:var(--accent);color:var(--accent);background:rgba(124,107,255,.1)}
 
@@ -384,6 +370,11 @@ textarea{resize:vertical;min-height:72px}
       <div class="page" id="page-heatmap">
         <div class="card">
           <div class="card-title">// activity heatmap</div>
+          <div class="year-nav">
+            <button class="year-nav-btn" id="btn-year-prev" onclick="changeYear(-1)" aria-label="Previous year">◀</button>
+            <span class="year-label" id="year-label"></span>
+            <button class="year-nav-btn" id="btn-year-next" onclick="changeYear(1)" aria-label="Next year">▶</button>
+          </div>
           <div class="filter-tabs" id="filter-tabs"></div>
           <div class="heatmap-wrap">
             <div class="heatmap-container">
@@ -449,18 +440,6 @@ textarea{resize:vertical;min-height:72px}
   </div>
 </div>
 
-<!-- MOBILE CONSOLE OVERLAY -->
-<div id="mobile-console">
-  <div id="mobile-console-bar">
-    <span>📱 Console <span id="mc-count" style="color:var(--muted);font-weight:400">(0)</span></span>
-    <div style="display:flex;gap:6px">
-      <button onclick="mcClear()">Clear</button>
-      <button onclick="mcClose()">✕ Close</button>
-    </div>
-  </div>
-  <div id="mobile-console-log"></div>
-</div>
-
 <div class="tooltip" id="tooltip"></div>
 <div class="toast"   id="toast"></div>
 
@@ -496,70 +475,7 @@ const googleProvider = new GoogleAuthProvider();
 // Set to false in production to silence high-frequency render logs.
 // Errors and warnings always log regardless of this flag.
 const DEBUG = true;
-
-// ── MOBILE CONSOLE OVERLAY ────────────────────────────────
-// Intercepts console.log/warn/error and displays on-screen.
-// Remove the #mobile-console div (or set display:none) before deploying.
-(function(){
-  const logEl  = ()=>document.getElementById('mobile-console-log');
-  const cntEl  = ()=>document.getElementById('mc-count');
-  let count = 0;
-
-  function mcLog(type, args){
-    count++;
-    const el = logEl(); if(!el) return;
-    const row  = document.createElement('div');
-    row.className = 'mc-entry ' + type;
-    const now  = new Date();
-    const ts   = now.toTimeString().slice(0,8);
-    const time = document.createElement('span');
-    time.className = 'mc-time'; time.textContent = ts;
-    const badge = document.createElement('span');
-    badge.className = 'mc-badge ' + type;
-    badge.textContent = type.toUpperCase();
-    const msg = document.createElement('span');
-    msg.style.flex = '1';
-    msg.textContent = args.map(a=>{
-      if(a === null) return 'null';
-      if(a === undefined) return 'undefined';
-      if(typeof a === 'object'){
-        try{ return JSON.stringify(a); }catch(e){ return String(a); }
-      }
-      return String(a);
-    }).join(' ');
-    row.appendChild(time); row.appendChild(badge); row.appendChild(msg);
-    el.appendChild(row);
-    el.scrollTop = el.scrollHeight; // auto-scroll to latest
-    const cnt = cntEl(); if(cnt) cnt.textContent = '(' + count + ')';
-  }
-
-  const _log   = console.log.bind(console);
-  const _warn  = console.warn.bind(console);
-  const _error = console.error.bind(console);
-  const _info  = console.info.bind(console);
-
-  console.log   = (...a)=>{ _log(...a);   mcLog('log',   a); };
-  console.warn  = (...a)=>{ _warn(...a);  mcLog('warn',  a); };
-  console.error = (...a)=>{ _error(...a); mcLog('error', a); };
-  console.info  = (...a)=>{ _info(...a);  mcLog('info',  a); };
-
-  // Also catch uncaught errors
-  window.addEventListener('error', ev=>{
-    mcLog('error', [ev.message + ' @ ' + ev.filename + ':' + ev.lineno]);
-  });
-  window.addEventListener('unhandledrejection', ev=>{
-    mcLog('error', ['Unhandled promise rejection: ' + (ev.reason?.message || ev.reason)]);
-  });
-})();
-
-window.mcClear = function(){
-  const el = document.getElementById('mobile-console-log');
-  if(el) el.innerHTML = '';
-};
-window.mcClose = function(){
-  const el = document.getElementById('mobile-console');
-  if(el) el.style.display = 'none';
-};
+const log = (...a) => DEBUG && console.log(...a); // replaces if(DEBUG) console.log everywhere
 
 // ── PALETTE ───────────────────────────────────────────────
 const CAT_PALETTE = [
@@ -582,6 +498,7 @@ const PROFILE_COLORS = [
   {bg:'#1a3a38',text:'#40d8c8'},{bg:'#2a1a3a',text:'#d8a0f8'},
 ];
 
+let categoryColorMap = {}; // built whenever categories change — O(1) catColor lookup
 let currentUser = null;  // Firebase UID — set by onAuthStateChanged
 let currentUserName = null; // Display name from Google account
 let snapshotUnsub = null;
@@ -660,6 +577,7 @@ function initAuthListener(){
 
       // Reset heatmap and start sync
       loadCats();
+      viewYear = new Date().getFullYear(); // always start on current year
       heatmapBuilt=false; heatmapDirty=true; cellCache={};
       if(snapshotUnsub){ snapshotUnsub(); snapshotUnsub=null; }
       startRealtimeSync();
@@ -693,7 +611,7 @@ function showToastRaw(msg,type='success'){
 // Queried once at startup — never call getElementById in hot paths.
 const DOM = {};
 function initDOMCache(){
-  if(DEBUG) console.log('[CodeLog] initDOMCache — caching DOM refs');
+  log('[CodeLog] initDOMCache — caching DOM refs');
   DOM.syncDot      = document.getElementById('sync-dot');
   DOM.loader       = document.getElementById('loading-overlay');
   DOM.tooltip      = document.getElementById('tooltip');
@@ -726,7 +644,7 @@ function initDOMCache(){
   };
   // Pre-resolve page elements by name so switchPage never calls getElementById
   for(const [k,v] of Object.entries(PAGE_MAP)) PAGE_EL[k]=document.getElementById(v);
-  if(DEBUG) console.log('[CodeLog] DOM cache ready — pages:', Object.keys(PAGE_EL));
+  log('[CodeLog] DOM cache ready — pages:', Object.keys(PAGE_EL));
 }
 
 // ── STATE ─────────────────────────────────────────────────
@@ -738,7 +656,8 @@ let state = {
   filterCat:   'all',
 };
 let activePage      = 'log';
-let openDayPanelDate = null;  // track which date is open so we can refresh it
+let openDayPanelDate = null;
+let viewYear        = new Date().getFullYear(); // which year the heatmap shows
 
 const PAGE_MAP = {log:'page-log',heatmap:'page-heatmap',stats:'page-stats',cats:'page-cats'};
 let PAGE_EL = {};  // populated in initDOMCache
@@ -748,27 +667,32 @@ function loadCats(){
   try{
     const key = currentUser ? `cl_cats_${currentUser}` : 'cl_cats';
     const r=localStorage.getItem(key);
-    if(r){ state.categories=JSON.parse(r); console.log(`[CodeLog] loadCats — loaded for user "${currentUserName}":`, state.categories); }
-    else  { state.categories=[]; if(DEBUG) console.log('[CodeLog] loadCats — no saved categories, starting fresh'); }
+    if(r){ state.categories=JSON.parse(r); buildCategoryColorMap(); console.log(`[CodeLog] loadCats — loaded for user "${currentUserName}":`, state.categories); }
+    else  { state.categories=[]; categoryColorMap={}; log('[CodeLog] loadCats — no saved categories, starting fresh'); }
   }catch(e){ console.error('[CodeLog] loadCats — parse error:', e); }
 }
 function saveCats(){
   const key = currentUser ? `cl_cats_${currentUser}` : 'cl_cats';
   localStorage.setItem(key, JSON.stringify(state.categories));
-  if(DEBUG) console.log(`[CodeLog] saveCats — saved ${state.categories.length} categories for user "${currentUser}"`);
+  buildCategoryColorMap();
+  log(`[CodeLog] saveCats — saved ${state.categories.length} categories for user "${currentUser}"`);
 }
 
 // ── HELPERS ───────────────────────────────────────────────
 // TODAY cached at session start and refreshed if the calendar day rolls over
 let _today = new Date().toISOString().slice(0,10);
+let TODAY  = _today; // module-level cache — refreshed at start of each render cycle
 function todayStr(){
-  // Refresh if midnight has passed since last call
   const now = new Date().toISOString().slice(0,10);
-  if(now !== _today){ _today=now; heatmapBuilt=false; heatmapDirty=true; } // day rolled — rebuild grid
+  if(now !== _today){ _today=now; TODAY=now; heatmapBuilt=false; heatmapDirty=true; }
   return _today;
 }
 function dateLabel(ds){ return new Date(ds+'T12:00:00').toLocaleDateString('en-IN',{weekday:'short',month:'short',day:'numeric',year:'numeric'}); }
-function catColor(cat){ const i=state.categories.indexOf(cat)%CAT_PALETTE.length; return CAT_PALETTE[Math.max(0,i)]; }
+function buildCategoryColorMap(){
+  categoryColorMap={};
+  state.categories.forEach((cat,i)=>{ categoryColorMap[cat]=CAT_PALETTE[i%CAT_PALETTE.length]; });
+}
+function catColor(cat){ return categoryColorMap[cat] || CAT_PALETTE[0]; }
 function setEl(id,v){
   const e = DOM.stats[id];
   if(e) e.textContent=v;
@@ -797,7 +721,7 @@ function buildIndexes(){
     (entriesByDate[e.date]         = entriesByDate[e.date]         || []).push(e);
     (entriesByCategory[e.category] = entriesByCategory[e.category] || []).push(e);
   }
-  if(DEBUG) console.log(`[CodeLog] buildIndexes — ${state.entries.length} entries indexed in ${(performance.now()-t0).toFixed(2)}ms`);
+  log(`[CodeLog] buildIndexes — ${state.entries.length} entries indexed in ${(performance.now()-t0).toFixed(2)}ms`);
 }
 
 function buildCountMap(){
@@ -823,7 +747,8 @@ let countMapCache   = {};   // built once per scheduleRender, reused in hover & 
 function scheduleRender(){
   clearTimeout(renderTimer);
   renderTimer = setTimeout(()=>{
-    if(DEBUG) console.log('[CodeLog] scheduleRender — batch fired, rebuilding indexes + stats');
+    log('[CodeLog] scheduleRender — batch fired, rebuilding indexes + stats');
+    TODAY = todayStr(); // refresh once per render batch — all downstream functions use TODAY
     buildIndexes();
     countMapCache = buildCountMap();  // build once — reused by renderHeatmap & tooltip hover
     renderStats();                    // lightweight — runs immediately in the timeout
@@ -843,22 +768,24 @@ function scheduleRender(){
 // ── REAL-TIME LISTENER ────────────────────────────────────
 // onSnapshot fires instantly from Firestore local cache on repeat visits.
 function startRealtimeSync(){
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate()-365);
+  // Fetch all entries (no date cutoff) so year navigation works without new queries.
+  // Firestore's local cache means this is fast on repeat visits.
   const q = query(
     collection(db,'entries'),
     where('user','==',currentUser),
-    where('date','>=',cutoff.toISOString().slice(0,10)),
     orderBy('date','desc')
   );
-  if(DEBUG) console.log(`[CodeLog] startRealtimeSync — listening for user: "${currentUser}"`);
+  log(`[CodeLog] startRealtimeSync — listening for user: "${currentUser}"`);
 
   snapshotUnsub = onSnapshot(q,
     (snap) => {
       const count = snap.docs.length;
       const fromCache = snap.metadata.fromCache;
       console.log(`[CodeLog] snapshot received — ${count} entries | source: ${fromCache?'cache':'server'}`);
-      state.entries = snap.docs.map(d=>({id:d.id,...d.data()}));
+      // Pre-allocated array avoids intermediate map() allocation
+      const arr = new Array(snap.docs.length);
+      snap.docs.forEach((d,i)=>{ arr[i]={id:d.id,...d.data()}; });
+      state.entries = arr;
       setSyncDot('ok');
       heatmapDirty = true;
       scheduleRender();
@@ -884,7 +811,7 @@ async function addEntry(){
 
   const note = noteEl.value.trim();
 
-  if(DEBUG) console.log(`[CodeLog] addEntry — optimistic UI update, title: "${title}", category: ${state.selectedCat}`);
+  log(`[CodeLog] addEntry — optimistic UI update, title: "${title}", category: ${state.selectedCat}`);
   // ── Instant UI feedback ──
   titleEl.value = '';
   noteEl.value  = '';
@@ -901,7 +828,7 @@ async function addEntry(){
       timestamp: new Date().toISOString(),  // ISO — sortable & timezone-safe
       user:      currentUser,  // Firebase UID
     });
-    if(DEBUG) console.log('[CodeLog] addEntry — Firestore write confirmed');
+    log('[CodeLog] addEntry — Firestore write confirmed');
   } catch(e){
     console.error('[CodeLog] addEntry — Firestore write failed:', e);
     setSyncDot('error');
@@ -916,7 +843,7 @@ async function addEntry(){
 // 1. Remove from local cache & re-render IMMEDIATELY
 // 2. deleteDoc fires in background
 function deleteEntry(id){
-  if(DEBUG) console.log(`[CodeLog] deleteEntry — optimistic remove id: ${id}`);
+  log(`[CodeLog] deleteEntry — optimistic remove id: ${id}`);
   // Optimistic remove — rebuild indexes immediately, no full renderAll
   state.entries = state.entries.filter(e=>e.id!==id);
   buildIndexes();
@@ -939,7 +866,7 @@ function deleteEntry(id){
 
 // ── PAGE SWITCH ───────────────────────────────────────────
 function switchPage(page,btn){
-  if(DEBUG) console.log(`[CodeLog] switchPage — ${activePage} → ${page}`);
+  log(`[CodeLog] switchPage — ${activePage} → ${page}`);
   Object.values(PAGE_EL).forEach(p=>p.classList.remove('active'));
   const el=PAGE_EL[page]; if(el) el.classList.add('active');
   document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
@@ -998,7 +925,7 @@ function addCategory(){
   saveCats(); inp.value='';
   // Only re-render category UI — heatmap and stats don't change
   renderCatPills(); renderCatManage(); renderFilterTabs();
-  if(DEBUG) console.log(`[CodeLog] addCategory — "${name}" added, total: ${state.categories.length}`);
+  log(`[CodeLog] addCategory — "${name}" added, total: ${state.categories.length}`);
   showToast(`"${name}" added ✓`);
 }
 function deleteCat(cat){
@@ -1007,7 +934,7 @@ function deleteCat(cat){
   if(state.selectedCat===cat) state.selectedCat=state.categories[0] || null;
   if(state.filterCat===cat)   state.filterCat='all';
   saveCats();
-  if(DEBUG) console.log(`[CodeLog] deleteCat — "${cat}" removed, remaining: ${state.categories.length}`);
+  log(`[CodeLog] deleteCat — "${cat}" removed, remaining: ${state.categories.length}`);
   renderAll();
 }
 function renderFilterTabs(){
@@ -1030,23 +957,36 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 // Grid is built ONCE into cellCache. On subsequent updates we only
 // update className on existing nodes — no DOM create/destroy.
 let cellCache = {};       // { 'YYYY-MM-DD': DOMElement }
+let cellKeys  = [];       // pre-built key array — avoids Object.entries() allocation each render
 let heatmapBuilt = false; // true after first full build
 
 function buildHeatmapDOM(){
   const t0=performance.now();
-  if(DEBUG) console.log('[CodeLog] buildHeatmapDOM — building 365-cell grid (runs once)');
-  // Full build — runs once per session (or if date rolls over midnight)
+  log(`[CodeLog] buildHeatmapDOM — building grid for ${viewYear}`);
   const grid=DOM.heatmapGrid, mRow=DOM.heatmapMonths;
   grid.innerHTML=''; mRow.innerHTML=''; cellCache={};
   const gridFrag=document.createDocumentFragment();
   const mRowFrag=document.createDocumentFragment();
-  const todayISO=todayStr();
-  const startDate=new Date();
-  startDate.setDate(startDate.getDate()-364);
-  startDate.setDate(startDate.getDate()-startDate.getDay());
+  const todayISO=TODAY;
+  const currentYear = new Date().getFullYear();
+  // Start: Jan 1 of viewYear, aligned to Sunday
+  const startDate = new Date(viewYear, 0, 1);
+  startDate.setDate(startDate.getDate() - startDate.getDay());
+  // End: Dec 31 of viewYear, but capped at today if current year
+  const endDate = viewYear === currentYear
+    ? new Date()
+    : new Date(viewYear, 11, 31);
+  // Update year label and nav buttons
+  const lbl = document.getElementById('year-label');
+  if(lbl) lbl.textContent = viewYear;
+  const btnPrev = document.getElementById('btn-year-prev');
+  const btnNext = document.getElementById('btn-year-next');
+  // Don't allow going before 2020 or past current year
+  if(btnPrev) btnPrev.disabled = viewYear <= 2020;
+  if(btnNext) btnNext.disabled = viewYear >= currentYear;
   let curMonth=-1, col=mkCol(), wIdx=0, mPos=[];
-  const cur=new Date(startDate), today=new Date();
-  while(cur<=today){
+  const cur=new Date(startDate);
+  while(cur<=endDate){
     const dow=cur.getDay();
     if(dow===0){ if(col.children.length) gridFrag.appendChild(col); col=mkCol(); wIdx++; }
     const ds=cur.toISOString().slice(0,10);
@@ -1080,7 +1020,8 @@ function buildHeatmapDOM(){
   });
   mRow.appendChild(mRowFrag); // single reflow
   heatmapBuilt=true;
-  if(DEBUG) console.log(`[CodeLog] buildHeatmapDOM — done in ${(performance.now()-t0).toFixed(2)}ms, ${Object.keys(cellCache).length} cells cached`);
+  cellKeys = Object.keys(cellCache); // cache once — reused every renderHeatmap call
+  log(`[CodeLog] buildHeatmapDOM — done in ${(performance.now()-t0).toFixed(2)}ms, ${Object.keys(cellCache).length} cells cached`);
 }
 
 function renderHeatmap(){
@@ -1089,9 +1030,10 @@ function renderHeatmap(){
   if(!heatmapBuilt) buildHeatmapDOM();
   const countMap=countMapCache;
   const maxCount=Math.max(1,...Object.values(countMap),1);
-  const todayISO=todayStr();
+  const todayISO=TODAY;
   let activeCells=0;
-  for(const [ds,cell] of Object.entries(cellCache)){
+  for(const ds of cellKeys){
+    const cell = cellCache[ds];
     const count=countMap[ds]||0;
     if(count>0) activeCells++;
     // Reset to base class, preserve today outline
@@ -1103,7 +1045,7 @@ function renderHeatmap(){
       else cell.classList.add('l4');
     }
   }
-  if(DEBUG) console.log(`[CodeLog] renderHeatmap — ${activeCells} active days painted in ${(performance.now()-t0).toFixed(2)}ms`);
+  log(`[CodeLog] renderHeatmap — ${activeCells} active days painted in ${(performance.now()-t0).toFixed(2)}ms`);
 }
 function mkCol(){ const d=document.createElement('div'); d.className='heatmap-col'; return d; }
 
@@ -1185,7 +1127,7 @@ function closeDayPanel(){
 // ── STATS ─────────────────────────────────────────────────
 function renderStats(){
   // All lookups use precomputed indexes — zero .filter() scans
-  const today=todayStr();
+  const today=TODAY;
   const todayCount=(entriesByDate[today]||[]).length;
   const total=state.entries.length;
   const now=new Date(),dow=now.getDay()||7,mon=new Date(now);
@@ -1195,7 +1137,7 @@ function renderStats(){
   const weekCount=Object.keys(entriesByDate).filter(d=>d>=monStr).reduce((s,d)=>s+(entriesByDate[d].length),0);
   let streak=0,d=new Date();
   if(!todayCount) d.setDate(d.getDate()-1);
-  // entriesByDate only holds 365 days of data — loop is naturally bounded
+  // entriesByDate loop is bounded by available data (all entries loaded)
   let ds=d.toISOString().slice(0,10);
   while(entriesByDate[ds]?.length){
     streak++;
@@ -1251,8 +1193,8 @@ function getFilteredExportEntries(){
 
   let entries = [...state.entries];
 
-  // Category filter
-  if(filter !== 'all') entries = entries.filter(e=>e.category===filter);
+  // Category filter — use precomputed index (O(1)) instead of .filter() scan
+  if(filter !== 'all') entries = [...(entriesByCategory[filter] || [])];
 
   // Date range filter
   if(range !== 'all'){
@@ -1302,7 +1244,7 @@ function updateExportPreview(){
   const entries = getFilteredExportEntries();
   const preview = document.getElementById('export-preview');
   const countEl = document.getElementById('export-count');
-  if(DEBUG) console.log(`[CodeLog] updateExportPreview — format: ${fmt}, entries matching: ${entries.length}`);
+  log(`[CodeLog] updateExportPreview — format: ${fmt}, entries matching: ${entries.length}`);
 
   countEl.innerHTML = `<span>${entries.length}</span> entr${entries.length===1?'y':'ies'} match your filters`;
 
@@ -1333,12 +1275,12 @@ function openExportModal(){
 
   updateExportPreview();
   document.getElementById('export-modal').classList.remove('hidden');
-  if(DEBUG) console.log('[CodeLog] openExportModal — opened for user:', currentUser);
+  log('[CodeLog] openExportModal — opened for user:', currentUser);
 }
 
 function closeExportModal(){
   document.getElementById('export-modal').classList.add('hidden');
-  if(DEBUG) console.log('[CodeLog] closeExportModal — modal dismissed');
+  log('[CodeLog] closeExportModal — modal dismissed');
 }
 
 function downloadExport(){
@@ -1362,7 +1304,7 @@ function downloadExport(){
   a.click();
   URL.revokeObjectURL(url);
 
-  if(DEBUG) console.log(`[CodeLog] downloadExport — ${entries.length} entries exported as ${filename}`);
+  log(`[CodeLog] downloadExport — ${entries.length} entries exported as ${filename}`);
   showToast(`Exported ${entries.length} entries as ${fmt.toUpperCase()} ✓`);
   closeExportModal();
 }
@@ -1372,15 +1314,30 @@ function initExportEvents(){
   const modal = document.getElementById('export-modal');
   if(!modal){ console.error('[CodeLog] initExportEvents — export-modal element not found'); return; }
   modal.addEventListener('click', e=>{ if(e.target===modal) closeExportModal(); });
-  if(DEBUG) console.log('[CodeLog] initExportEvents — overlay dismiss listener attached');
+  log('[CodeLog] initExportEvents — overlay dismiss listener attached');
 }
+// ── YEAR NAVIGATION ──────────────────────────────────────
+function changeYear(delta){
+  const currentYear = new Date().getFullYear();
+  const newYear = viewYear + delta;
+  if(newYear < 2020 || newYear > currentYear) return;
+  viewYear = newYear;
+  // Rebuild heatmap DOM for new year, reuse already-loaded entries
+  heatmapBuilt = false;
+  cellCache = {};
+  countMapCache = buildCountMap();
+  renderHeatmap();
+  closeDayPanel(); // close panel since selected date may not exist in new year
+  log(`[CodeLog] changeYear — now viewing ${viewYear}`);
+}
+
 // ── RENDER ALL ────────────────────────────────────────────
 function renderAll(){ renderCatPills(); renderCatManage(); renderFilterTabs(); renderHeatmap(); renderStats(); }
 
 // ── RESIZE ────────────────────────────────────────────────
 function handleResize(){
   const layout = window.innerWidth>=900?'desktop':window.innerWidth>=600?'tablet':'mobile';
-  if(DEBUG) console.log(`[CodeLog] handleResize — ${window.innerWidth}px → ${layout}`);
+  log(`[CodeLog] handleResize — ${window.innerWidth}px → ${layout}`);
   if(window.innerWidth>=600){ Object.values(PAGE_EL).forEach(p=>p.classList.add('active')); }
   else{ Object.values(PAGE_EL).forEach(p=>p.classList.remove('active')); const el=PAGE_EL[activePage]; if(el) el.classList.add('active'); }
 }
@@ -1396,7 +1353,7 @@ let deferredInstallPrompt = null;
 window.addEventListener('beforeinstallprompt', e=>{
   e.preventDefault();
   deferredInstallPrompt = e;
-  if(DEBUG) console.log('[CodeLog] PWA install prompt available — showing install button');
+  log('[CodeLog] PWA install prompt available — showing install button');
   // Show the install button in header now that prompt is ready
   const btn = document.getElementById('btn-install');
   if(btn) btn.classList.add('visible');
@@ -1406,7 +1363,7 @@ window.addEventListener('appinstalled', ()=>{
   deferredInstallPrompt = null;
   const btn = document.getElementById('btn-install');
   if(btn) btn.classList.remove('visible');
-  if(DEBUG) console.log('[CodeLog] PWA installed — hiding install button');
+  log('[CodeLog] PWA installed — hiding install button');
   showToast('App installed! 🎉');
 });
 
@@ -1414,7 +1371,7 @@ async function installApp(){
   if(!deferredInstallPrompt){ showToast('Install not available yet'); return; }
   deferredInstallPrompt.prompt();
   const { outcome } = await deferredInstallPrompt.userChoice;
-  if(DEBUG) console.log(`[CodeLog] installApp — user choice: ${outcome}`);
+  log(`[CodeLog] installApp — user choice: ${outcome}`);
   deferredInstallPrompt = null;
   // Hide button regardless of outcome — prompt can only be used once
   const btn = document.getElementById('btn-install');
@@ -1427,6 +1384,7 @@ window.addEntry         = addEntry;
 window.addCategory      = addCategory;
 window.closeDayPanel    = closeDayPanel;
 window.signInWithGoogle = signInWithGoogle;
+window.changeYear       = changeYear;
 window.signOutUser      = signOutUser;
 window.installApp       = installApp;
 window.openExportModal   = openExportModal;
