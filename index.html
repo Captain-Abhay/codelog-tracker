@@ -4,18 +4,6 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <title>CodeLog — Practice Tracker</title>
-<!-- PWA + Icons -->
-<link rel="icon" href="./favicon.png" type="image/png">
-<link rel="shortcut icon" href="./favicon.png" type="image/png">
-<link rel="apple-touch-icon" href="./icon-192.png">
-
-<link rel="manifest" href="./manifest.json">
-
-<meta name="theme-color" content="#7c6bff">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="CodeLog">
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'"/>
@@ -203,6 +191,10 @@ textarea{resize:vertical;min-height:72px}
 .profile-box h2 span{color:var(--accent)}
 .profile-box .sub{font-family:'Space Mono',monospace;font-size:.7rem;color:var(--muted);margin-bottom:28px;text-align:center}
 .profile-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.auth-status-msg{text-align:center;font-family:'Space Mono',monospace;font-size:.72rem;color:var(--muted);margin-bottom:24px;line-height:1.6}
+.btn-google-signin{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:14px 20px;background:#fff;color:#3c4043;border:1px solid #dadce0;border-radius:var(--radius);font-family:'Syne',sans-serif;font-size:.95rem;font-weight:600;cursor:pointer;transition:box-shadow .15s,background .15s;letter-spacing:.2px}
+.btn-google-signin:hover{box-shadow:0 1px 3px rgba(0,0,0,.3);background:#f8f9fa}
+.btn-google-signin:active{background:#f1f3f4}
 .profile-btn{display:flex;align-items:center;gap:14px;padding:13px 16px;background:var(--surface2);border:2px solid var(--border);border-radius:12px;cursor:pointer;transition:all .15s;width:100%;text-align:left}
 .profile-btn:hover{border-color:var(--accent);background:rgba(124,107,255,.08)}
 .profile-btn.active-profile{border-color:var(--accent2);background:rgba(184,169,255,.1)}
@@ -254,18 +246,17 @@ textarea{resize:vertical;min-height:72px}
 <body>
 
 
-<!-- PROFILE SCREEN -->
-<div class="profile-screen" id="profile-screen">
+<!-- AUTH SCREEN -->
+<div class="profile-screen" id="auth-screen">
   <div class="profile-box">
     <img src="./icon-512.png" alt="CodeLog" class="profile-logo"/>
     <h2>Code<span>Log</span></h2>
     <div class="sub">// who's grinding today?</div>
-    <div class="profile-list" id="profile-list"></div>
-    <div class="profile-divider">or create new</div>
-    <div class="new-profile-row">
-      <input type="text" id="input-new-profile" placeholder="Your name..." maxlength="20" autocomplete="off" autocorrect="off"/>
-      <button class="btn-create-profile" onclick="createProfile()" aria-label="Create profile">＋ Create</button>
-    </div>
+    <div id="auth-status" class="auth-status-msg">Sign in to sync your tracker across all devices</div>
+    <button class="btn-google-signin" id="btn-google-signin" onclick="signInWithGoogle()">
+      <svg width="18" height="18" viewBox="0 0 48 48" style="flex-shrink:0"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+      Continue with Google
+    </button>
   </div>
 </div>
 
@@ -280,7 +271,7 @@ textarea{resize:vertical;min-height:72px}
     <span class="header-sub">// track what you grind</span>
     <span class="sync-dot" id="sync-dot" title="Synced"></span>
   </div>
-  <div class="profile-indicator" id="profile-indicator" onclick="showProfileScreen()" title="Switch profile">
+  <div class="profile-indicator" id="profile-indicator" onclick="signOutUser()" title="Sign out">
     <div class="p-avatar" id="header-avatar"></div>
     <span class="p-name" id="header-pname">—</span>
   </div>
@@ -422,10 +413,12 @@ textarea{resize:vertical;min-height:72px}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { initializeFirestore, persistentLocalCache,
          collection, addDoc, getDoc,
          deleteDoc, doc, setDoc, query, where, orderBy,
-         onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+         serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ── CONFIG ────────────────────────────────────────────────
 const firebaseConfig = {
@@ -443,6 +436,8 @@ const db = initializeFirestore(app, {
   localCache: persistentLocalCache()
 });
 console.log('[CodeLog] Firestore initialized with persistent local cache (IndexedDB)');
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
 
 // ── DEBUG FLAG ────────────────────────────────────────────
 // Set to false in production to silence high-frequency render logs.
@@ -470,148 +465,103 @@ const PROFILE_COLORS = [
   {bg:'#1a3a38',text:'#40d8c8'},{bg:'#2a1a3a',text:'#d8a0f8'},
 ];
 
-let currentUser = null;  // set by selectProfile() before sync starts
-let snapshotUnsub = null; // hold unsubscribe fn so we can swap listeners on profile switch
+let currentUser = null;  // Firebase UID — set by onAuthStateChanged
+let currentUserName = null; // Display name from Google account
+let snapshotUnsub = null;
 
-function profileColor(name){
-  let hash=0; for(const c of name) hash=(hash*31+c.charCodeAt(0))&0xffff;
+// ── AUTH: color/initial helpers (keyed on UID now) ──
+function profileColor(uid){
+  let hash=0; for(const c of (uid||'')) hash=(hash*31+c.charCodeAt(0))&0xffff;
   return PROFILE_COLORS[hash % PROFILE_COLORS.length];
 }
-function profileInitial(name){ return name.trim().charAt(0).toUpperCase(); }
+function profileInitial(name){ return (name||'?').trim().charAt(0).toUpperCase(); }
 
-function loadProfiles(){ try{ return JSON.parse(localStorage.getItem('cl_profiles')||'[]'); }catch(e){ return []; } }
-function saveProfiles(list){ localStorage.setItem('cl_profiles', JSON.stringify(list)); }
-
-function renderProfileList(){
-  const list = document.getElementById('profile-list');
-  if(!list) return;
-  const profiles = loadProfiles();
-  const frag = document.createDocumentFragment();
-  if(!profiles.length){
-    const empty = document.createElement('div');
-    empty.style.cssText='text-align:center;padding:16px;font-family:Space Mono,monospace;font-size:.75rem;color:var(--muted)';
-    empty.textContent='No profiles yet — create one below';
-    frag.appendChild(empty);
+// ── GOOGLE SIGN-IN ──────────────────────────────────────
+async function signInWithGoogle(){
+  const statusEl = document.getElementById('auth-status');
+  const btn = document.getElementById('btn-google-signin');
+  if(btn){ btn.disabled=true; btn.style.opacity='.6'; }
+  if(statusEl) statusEl.textContent = 'Opening Google sign-in popup…';
+  try {
+    await signInWithPopup(auth, googleProvider);
+    // onAuthStateChanged fires automatically after this — no need to reset btn here
+  } catch(e){
+    console.error('[CodeLog] signInWithGoogle — error:', e.code, e.message);
+    const msg = e.code === 'auth/popup-closed-by-user'
+      ? 'Sign-in cancelled — try again when ready'
+      : 'Sign-in failed — please try again';
+    if(statusEl) statusEl.textContent = msg;
+    // Always re-enable button so user can retry
+    if(btn){ btn.disabled=false; btn.style.opacity='1'; }
   }
-  profiles.forEach(name=>{
-    const col = profileColor(name);
-    const btn = document.createElement('button');
-    btn.className = 'profile-btn' + (name===currentUser?' active-profile':'');
-    btn.innerHTML = `
-      <div class="profile-avatar" style="background:${col.bg};color:${col.text}">${profileInitial(name)}</div>
-      <div class="profile-info">
-        <div class="profile-name">${name}</div>
-        <div class="profile-meta">tap to select</div>
-      </div>
-      ${name===currentUser?'<span class="profile-check">✓</span>':''}
-      <button class="btn-del-profile" title="Delete profile" onclick="event.stopPropagation();deleteProfile('${name}')">✕</button>
-    `;
-    btn.addEventListener('click', ()=>selectProfile(name));
-    frag.appendChild(btn);
-  });
-  list.innerHTML='';
-  list.appendChild(frag);
 }
 
-async function createProfile(){
-  const inp = document.getElementById('input-new-profile');
-  const name = inp.value.trim().replace(/\s+/g,' ');
-  if(!name){ showToastRaw('Enter a name first','error'); return; }
-  const profiles = loadProfiles();
-  if(profiles.length>=5){ showToastRaw('Max 5 profiles reached — delete one first','error'); return; }
-  // Local uniqueness check (fast)
-  if(profiles.find(p=>p.toLowerCase()===name.toLowerCase())){
-    showToastRaw('Username already taken — choose a different name','error'); return;
-  }
-  // Server-side uniqueness check against the users collection.
-  // Using a dedicated users/{name} doc is reliable — no entries needed to detect existence.
-  showToastRaw('Checking username…');
-  try {
-    // getDoc on users/{name} — O(1) lookup, no index needed, no getDocs/limit required
-    const userDoc = await getDoc(doc(db,'users',name));
-    if(userDoc.exists()){
-      showToastRaw('Username already in use on another device — choose a different name','error');
-      console.warn(`[CodeLog] createProfile — "${name}" rejected, already exists in users collection`);
-      return;
+async function signOutUser(){
+  if(!confirm('Sign out of CodeLog?')) return;
+  if(snapshotUnsub){ snapshotUnsub(); snapshotUnsub=null; }
+  state.entries=[];
+  await signOut(auth);
+  // onAuthStateChanged fires and shows auth screen
+}
+
+// ── AUTH STATE HANDLER ──────────────────────────────────
+// Single source of truth — all app startup flows through here
+function initAuthListener(){
+  onAuthStateChanged(auth, user=>{
+    if(user){
+      console.log(`[CodeLog] auth — signed in as ${user.displayName} (${user.uid})`);
+      currentUser = user.uid;           // UID used for Firestore queries
+      currentUserName = user.displayName || user.email.split('@')[0];
+
+      // Hide auth screen
+      const as = document.getElementById('auth-screen');
+      if(as) as.classList.add('hidden');
+
+      // Update header with Google profile photo or initial
+      const col = profileColor(user.uid);
+      const av = document.getElementById('header-avatar');
+      const pn = document.getElementById('header-pname');
+      if(av){
+        if(user.photoURL){
+          av.style.backgroundImage=`url(${user.photoURL})`;
+          av.style.backgroundSize='cover';
+          av.textContent='';
+        } else {
+          av.textContent=profileInitial(currentUserName);
+          av.style.background=col.bg; av.style.color=col.text;
+        }
+      }
+      if(pn) pn.textContent=currentUserName;
+
+      // Register user doc in Firestore (idempotent)
+      setDoc(doc(db,'users',user.uid), {
+        uid: user.uid,
+        name: currentUserName,
+        email: user.email,
+        lastSeen: serverTimestamp()  // server-side timestamp — consistent across timezones
+      }, {merge:true}).catch(e=>console.warn('[CodeLog] user doc write failed:', e.message));
+
+      // Reset heatmap and start sync
+      loadCats();
+      heatmapBuilt=false; heatmapDirty=true; cellCache={};
+      if(snapshotUnsub){ snapshotUnsub(); snapshotUnsub=null; }
+      startRealtimeSync();
+
+    } else {
+      console.log('[CodeLog] auth — signed out, showing auth screen');
+      currentUser=null; currentUserName=null;
+      if(snapshotUnsub){ snapshotUnsub(); snapshotUnsub=null; }
+      state.entries=[];
+
+      // Show auth screen, hide loading overlay
+      const as = document.getElementById('auth-screen');
+      if(as) as.classList.remove('hidden');
+      hideLoader();
     }
-  } catch(e){
-    // Network unavailable — fall through and allow creation optimistically
-    console.warn('[CodeLog] createProfile — server check failed (offline?), proceeding optimistically:', e.message);
-  }
-  profiles.push(name);
-  saveProfiles(profiles);
-  inp.value='';
-  // Write to users collection so other devices can detect this username
-  try {
-    // setDoc with username as doc ID — idempotent, prevents duplicate user docs
-    await setDoc(doc(db,'users',name), { name, createdAt: new Date().toISOString() });
-    if(DEBUG) console.log(`[CodeLog] createProfile — "${name}" registered in Firestore users/${name}`);
-  } catch(e){
-    // Non-fatal — localStorage profile still works, just won't block cross-device duplicates
-    console.warn('[CodeLog] createProfile — failed to write users doc (offline?):', e.message);
-  }
-  if(DEBUG) console.log(`[CodeLog] createProfile — "${name}" created`);
-  selectProfile(name);
-}
-
-function deleteProfile(name){
-  if(!confirm(`Delete profile "${name}" from this device? Your entries remain in the database and the username can be reclaimed.`)) return;
-  let profiles = loadProfiles().filter(p=>p!==name);
-  saveProfiles(profiles);
-  if(DEBUG) console.log(`[CodeLog] deleteProfile — "${name}" removed from local list`);
-  if(currentUser===name){
-    if(DEBUG) console.log(`[CodeLog] deleteProfile — "${name}" was active user, clearing session`);
-    currentUser=null;
-    localStorage.removeItem('cl_current_user');
-    if(snapshotUnsub){ snapshotUnsub(); snapshotUnsub=null; }
-    state.entries=[];
-  }
-  // Release the username in Firestore so it can be recreated on any device
-  deleteDoc(doc(db,'users',name)).catch(err=>{
-    console.warn(`[CodeLog] deleteProfile — failed to remove users/${name} from Firestore:`, err.message);
   });
-  renderProfileList();
-  if(!currentUser) showProfileScreen();
 }
 
-function selectProfile(name){
-  currentUser = name;
-  localStorage.setItem('cl_current_user', name);
-  if(DEBUG) console.log(`[CodeLog] selectProfile — switching to "${name}"`);
-
-  // Update header indicator
-  const col = profileColor(name);
-  const av  = document.getElementById('header-avatar');
-  const pn  = document.getElementById('header-pname');
-  if(av){ av.textContent=profileInitial(name); av.style.background=col.bg; av.style.color=col.text; }
-  if(pn)  pn.textContent=name;
-
-  // Per-user categories key
-  loadCats();
-
-  // Hide profile screen, show app
-  const ps = document.getElementById('profile-screen');
-  if(ps) ps.classList.add('hidden');
-
-  // Unsubscribe previous listener if switching users mid-session
-  if(snapshotUnsub){ snapshotUnsub(); snapshotUnsub=null; state.entries=[]; }
-
-  // Reset and restart sync for new user
-  heatmapBuilt = false;
-  heatmapDirty = true;
-  cellCache = {};
-  if(DEBUG) console.log('[CodeLog] selectProfile — heatmap cache cleared, starting fresh sync');
-  startRealtimeSync();
-}
-
-function showProfileScreen(){
-  if(DEBUG) console.log('[CodeLog] showProfileScreen — showing profile picker');
-  renderProfileList();
-  const ps = document.getElementById('profile-screen');
-  if(ps) ps.classList.remove('hidden');
-}
-
-// Small toast that works before DOM cache is ready (used in profile screen)
+// Small toast that works before DOM cache is ready
 function showToastRaw(msg,type='success'){
   const t=document.getElementById('toast');
   if(!t) return;
@@ -681,7 +631,7 @@ function loadCats(){
   try{
     const key = currentUser ? `cl_cats_${currentUser}` : 'cl_cats';
     const r=localStorage.getItem(key);
-    if(r){ state.categories=JSON.parse(r); console.log(`[CodeLog] loadCats — loaded for user "${currentUser}":`, state.categories); }
+    if(r){ state.categories=JSON.parse(r); console.log(`[CodeLog] loadCats — loaded for user "${currentUserName}":`, state.categories); }
     else  { state.categories=[]; if(DEBUG) console.log('[CodeLog] loadCats — no saved categories, starting fresh'); }
   }catch(e){ console.error('[CodeLog] loadCats — parse error:', e); }
 }
@@ -831,8 +781,8 @@ async function addEntry(){
       category:  state.selectedCat,
       note,
       date:      todayStr(),
-      timestamp: new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),
-      user:      currentUser,
+      timestamp: new Date().toISOString(),  // ISO — sortable & timezone-safe
+      user:      currentUser,  // Firebase UID
     });
     if(DEBUG) console.log('[CodeLog] addEntry — Firestore write confirmed');
   } catch(e){
@@ -1095,7 +1045,13 @@ function showDayPanel(ds){
         item.appendChild(noteDiv);
       }
       const timeDiv=document.createElement('div'); timeDiv.className='entry-time';
-      timeDiv.textContent=`logged at ${e.timestamp}`;
+      // Parse ISO timestamp for display; fall back gracefully for old locale-format entries
+      const tsDisplay = e.timestamp
+        ? (e.timestamp.includes('T')
+            ? new Date(e.timestamp).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})
+            : e.timestamp)  // legacy locale-format entries still display correctly
+        : '';
+      timeDiv.textContent = tsDisplay ? `logged at ${tsDisplay}` : '';
       item.appendChild(timeDiv);
       listFrag.appendChild(item);
     });
@@ -1221,7 +1177,7 @@ function buildJSON(entries){
     note:      e.note || '',
     timestamp: e.timestamp || '',
   }));
-  return JSON.stringify({ user: currentUser, exported: new Date().toISOString(), entries: clean }, null, 2);
+  return JSON.stringify({ user: currentUserName, uid: currentUser, exported: new Date().toISOString(), entries: clean }, null, 2);
 }
 
 function updateExportPreview(){
@@ -1256,7 +1212,7 @@ function openExportModal(){
   });
 
   const sub = document.getElementById('export-modal-sub');
-  sub.textContent = `// exporting data for ${currentUser}`;
+  sub.textContent = `// exporting data for ${currentUserName}`;
 
   updateExportPreview();
   document.getElementById('export-modal').classList.remove('hidden');
@@ -1278,7 +1234,7 @@ function downloadExport(){
   const content  = isCSV ? buildCSV(entries) : buildJSON(entries);
   const mimeType = isCSV ? 'text/csv' : 'application/json';
   const dateStr  = new Date().toISOString().slice(0,10);
-  const filename = `codelog_${currentUser}_${dateStr}.${fmt}`;
+  const filename = `codelog_${currentUserName}_${dateStr}.${fmt}`;
 
   // Create blob and trigger download
   const blob = new Blob([content], { type: mimeType });
@@ -1312,15 +1268,30 @@ function handleResize(){
   else{ Object.values(PAGE_EL).forEach(p=>p.classList.remove('active')); const el=PAGE_EL[activePage]; if(el) el.classList.add('active'); }
 }
 window.addEventListener('resize',handleResize,{passive:true});
+// Reflect browser connectivity in sync dot instantly
+window.addEventListener('offline',()=>{ setSyncDot('error'); showToast('You’re offline — changes will sync when reconnected','error'); },{passive:true});
+window.addEventListener('online', ()=>{ setSyncDot('ok');    showToast('Back online — syncing…'); },{passive:true});
+
+// ── PWA INSTALL PROMPT ───────────────────────────────────
+// Captured here so we can trigger it later from a button if desired
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', e=>{
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  if(DEBUG) console.log('[CodeLog] PWA install prompt available');
+});
+window.addEventListener('appinstalled', ()=>{
+  deferredInstallPrompt = null;
+  if(DEBUG) console.log('[CodeLog] PWA installed');
+});
 
 // ── EXPOSE to HTML onclick ────────────────────────────────
 window.switchPage       = switchPage;
 window.addEntry         = addEntry;
 window.addCategory      = addCategory;
 window.closeDayPanel    = closeDayPanel;
-window.createProfile    = createProfile;
-window.deleteProfile    = deleteProfile;
-window.showProfileScreen= showProfileScreen;
+window.signInWithGoogle = signInWithGoogle;
+window.signOutUser      = signOutUser;
 window.openExportModal   = openExportModal;
 window.closeExportModal  = closeExportModal;
 window.downloadExport    = downloadExport;
@@ -1332,26 +1303,13 @@ initExportEvents(); // wire export modal overlay dismiss
 // ── KEYBOARD — must follow initDOMCache so DOM.* refs exist ──
 DOM.inputNewCat.addEventListener('keydown',e=>{ if(e.key==='Enter') addCategory(); });
 DOM.inputTitle.addEventListener('keydown',  e=>{ if(e.key==='Enter') addEntry(); });
-// Profile input enter key
-document.getElementById('input-new-profile').addEventListener('keydown',e=>{ if(e.key==='Enter') createProfile(); });
 handleResize();
 renderCatPills();
 renderCatManage();
 renderFilterTabs();
 
-// Check for returning user — skip profile screen if already set
-const savedUser = localStorage.getItem('cl_current_user');
-const knownProfiles = loadProfiles();
-if(savedUser && knownProfiles.includes(savedUser)){
-  if(DEBUG) console.log(`[CodeLog] init — returning user "${savedUser}", skipping profile screen`);
-  selectProfile(savedUser);  // restores session, starts sync
-} else {
-  console.log('[CodeLog] init — no saved user, showing profile screen');
-  showProfileScreen();
-  // Hide loading overlay since we're showing profile screen instead
-  const ol=document.getElementById('loading-overlay');
-  if(ol) ol.remove();
-}
+// Auth listener is the single entry point — handles both new and returning users
+initAuthListener();
 </script>
 
 <!-- EXPORT MODAL -->
