@@ -4,18 +4,10 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <title>CodeLog — Practice Tracker</title>
-<link rel="manifest" href="./manifest.json">
-
-<link rel="icon" type="image/png" sizes="32x32" href="./favicon.png">
-<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png">
-
-<link rel="apple-touch-icon" href="./icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
-<meta name="theme-color" content="#7c6bff">
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'"/>
+<noscript><link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/></noscript>
 <style>
 :root {
   --bg:#0a0a0f; --surface:#13131a; --surface2:#1c1c26; --border:#2a2a38;
@@ -194,9 +186,10 @@ textarea{resize:vertical;min-height:72px}
 .profile-screen{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center;padding:24px}
 .profile-screen.hidden{display:none}
 .profile-box{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px 28px}
-.profile-box h2{font-size:1.6rem;font-weight:800;margin-bottom:4px}
+.profile-logo{width:96px;height:96px;border-radius:22px;display:block;margin:0 auto 20px;box-shadow:0 0 32px rgba(124,107,255,.35)}
+.profile-box h2{font-size:1.6rem;font-weight:800;margin-bottom:4px;text-align:center}
 .profile-box h2 span{color:var(--accent)}
-.profile-box .sub{font-family:'Space Mono',monospace;font-size:.7rem;color:var(--muted);margin-bottom:28px}
+.profile-box .sub{font-family:'Space Mono',monospace;font-size:.7rem;color:var(--muted);margin-bottom:28px;text-align:center}
 .profile-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
 .profile-btn{display:flex;align-items:center;gap:14px;padding:13px 16px;background:var(--surface2);border:2px solid var(--border);border-radius:12px;cursor:pointer;transition:all .15s;width:100%;text-align:left}
 .profile-btn:hover{border-color:var(--accent);background:rgba(124,107,255,.08)}
@@ -252,13 +245,14 @@ textarea{resize:vertical;min-height:72px}
 <!-- PROFILE SCREEN -->
 <div class="profile-screen" id="profile-screen">
   <div class="profile-box">
+    <img src="./icon-512.png" alt="CodeLog" class="profile-logo"/>
     <h2>Code<span>Log</span></h2>
     <div class="sub">// who's grinding today?</div>
     <div class="profile-list" id="profile-list"></div>
     <div class="profile-divider">or create new</div>
     <div class="new-profile-row">
-      <input type="text" id="input-new-profile" placeholder="Your name..." maxlength="20"/>
-      <button class="btn-create-profile" onclick="createProfile()">＋ Create</button>
+      <input type="text" id="input-new-profile" placeholder="Your name..." maxlength="20" autocomplete="off" autocorrect="off"/>
+      <button class="btn-create-profile" onclick="createProfile()" aria-label="Create profile">＋ Create</button>
     </div>
   </div>
 </div>
@@ -314,7 +308,7 @@ textarea{resize:vertical;min-height:72px}
           <div class="card-title">// log entry</div>
           <div class="form-group">
             <label>Problem / Link / Heading</label>
-            <input type="text" id="input-title" placeholder="e.g. Two Sum  or  https://leetcode.com/..."/>
+            <input type="text" id="input-title" placeholder="e.g. Two Sum  or  https://leetcode.com/..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"/>
           </div>
           <div class="form-group">
             <label>Category</label>
@@ -324,7 +318,7 @@ textarea{resize:vertical;min-height:72px}
             <label>Notes <span style="color:var(--muted);font-weight:400">(optional)</span></label>
             <textarea id="input-note" placeholder="Approach, complexity, what you learned..."></textarea>
           </div>
-          <button class="btn-submit" onclick="addEntry()">＋ Log It</button>
+          <button class="btn-submit" onclick="addEntry()" aria-label="Log entry">＋ Log It</button>
         </div>
       </div>
 
@@ -333,8 +327,8 @@ textarea{resize:vertical;min-height:72px}
           <div class="card-title">// manage categories</div>
           <div class="cat-manage-list" id="cat-manage-list"></div>
           <div class="add-cat-row">
-            <input type="text" id="input-new-cat" placeholder="New category..." maxlength="24"/>
-            <button class="btn-add-cat" onclick="addCategory()">＋ Add</button>
+            <input type="text" id="input-new-cat" placeholder="New category..." maxlength="24" autocomplete="off" autocapitalize="off"/>
+            <button class="btn-add-cat" onclick="addCategory()" aria-label="Add category">＋ Add</button>
           </div>
         </div>
       </div>
@@ -380,7 +374,7 @@ textarea{resize:vertical;min-height:72px}
               <div class="day-panel-date" id="day-panel-date">—</div>
               <div class="day-panel-count" id="day-panel-count"></div>
             </div>
-            <button class="btn-close" onclick="closeDayPanel()">✕</button>
+            <button class="btn-close" onclick="closeDayPanel()" aria-label="Close">✕</button>
           </div>
           <div class="entry-list" id="entry-list"></div>
         </div>
@@ -417,8 +411,8 @@ textarea{resize:vertical;min-height:72px}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { initializeFirestore, persistentLocalCache,
-         collection, addDoc, getDocs,
-         deleteDoc, doc, setDoc, query, where, orderBy, limit,
+         collection, addDoc, getDoc,
+         deleteDoc, doc, setDoc, query, where, orderBy,
          onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ── CONFIG ────────────────────────────────────────────────
@@ -521,8 +515,9 @@ async function createProfile(){
   // Using a dedicated users/{name} doc is reliable — no entries needed to detect existence.
   showToastRaw('Checking username…');
   try {
-    const userDoc = await getDocs(query(collection(db,'users'), where('name','==',name), limit(1)));
-    if(!userDoc.empty){
+    // getDoc on users/{name} — O(1) lookup, no index needed, no getDocs/limit required
+    const userDoc = await getDoc(doc(db,'users',name));
+    if(userDoc.exists()){
       showToastRaw('Username already in use on another device — choose a different name','error');
       console.warn(`[CodeLog] createProfile — "${name}" rejected, already exists in users collection`);
       return;
@@ -538,12 +533,12 @@ async function createProfile(){
   try {
     // setDoc with username as doc ID — idempotent, prevents duplicate user docs
     await setDoc(doc(db,'users',name), { name, createdAt: new Date().toISOString() });
-    console.log(`[CodeLog] createProfile — "${name}" registered in Firestore users/${name}`);
+    if(DEBUG) console.log(`[CodeLog] createProfile — "${name}" registered in Firestore users/${name}`);
   } catch(e){
     // Non-fatal — localStorage profile still works, just won't block cross-device duplicates
     console.warn('[CodeLog] createProfile — failed to write users doc (offline?):', e.message);
   }
-  console.log(`[CodeLog] createProfile — "${name}" created`);
+  if(DEBUG) console.log(`[CodeLog] createProfile — "${name}" created`);
   selectProfile(name);
 }
 
@@ -551,9 +546,9 @@ function deleteProfile(name){
   if(!confirm(`Delete profile "${name}"? Their entries stay in the database but won't be visible here.`)) return;
   let profiles = loadProfiles().filter(p=>p!==name);
   saveProfiles(profiles);
-  console.log(`[CodeLog] deleteProfile — "${name}" removed from local list`);
+  if(DEBUG) console.log(`[CodeLog] deleteProfile — "${name}" removed from local list`);
   if(currentUser===name){
-    console.log(`[CodeLog] deleteProfile — "${name}" was active user, clearing session`);
+    if(DEBUG) console.log(`[CodeLog] deleteProfile — "${name}" was active user, clearing session`);
     currentUser=null;
     localStorage.removeItem('cl_current_user');
     if(snapshotUnsub){ snapshotUnsub(); snapshotUnsub=null; }
@@ -566,7 +561,7 @@ function deleteProfile(name){
 function selectProfile(name){
   currentUser = name;
   localStorage.setItem('cl_current_user', name);
-  console.log(`[CodeLog] selectProfile — switching to "${name}"`);
+  if(DEBUG) console.log(`[CodeLog] selectProfile — switching to "${name}"`);
 
   // Update header indicator
   const col = profileColor(name);
@@ -589,12 +584,12 @@ function selectProfile(name){
   heatmapBuilt = false;
   heatmapDirty = true;
   cellCache = {};
-  console.log('[CodeLog] selectProfile — heatmap cache cleared, starting fresh sync');
+  if(DEBUG) console.log('[CodeLog] selectProfile — heatmap cache cleared, starting fresh sync');
   startRealtimeSync();
 }
 
 function showProfileScreen(){
-  console.log('[CodeLog] showProfileScreen — showing profile picker');
+  if(DEBUG) console.log('[CodeLog] showProfileScreen — showing profile picker');
   renderProfileList();
   const ps = document.getElementById('profile-screen');
   if(ps) ps.classList.remove('hidden');
@@ -615,7 +610,7 @@ function showToastRaw(msg,type='success'){
 // Queried once at startup — never call getElementById in hot paths.
 const DOM = {};
 function initDOMCache(){
-  console.log('[CodeLog] initDOMCache — caching DOM refs');
+  if(DEBUG) console.log('[CodeLog] initDOMCache — caching DOM refs');
   DOM.syncDot      = document.getElementById('sync-dot');
   DOM.loader       = document.getElementById('loading-overlay');
   DOM.tooltip      = document.getElementById('tooltip');
@@ -633,9 +628,22 @@ function initDOMCache(){
   DOM.inputTitle   = document.getElementById('input-title');
   DOM.inputNote    = document.getElementById('input-note');
   DOM.inputNewCat  = document.getElementById('input-new-cat');
+  // Stat number elements — updated on every renderStats call
+  DOM.stats = {
+    'stat-today':  document.getElementById('stat-today'),
+    'stat-total':  document.getElementById('stat-total'),
+    'stat-streak': document.getElementById('stat-streak'),
+    'stat-week':   document.getElementById('stat-week'),
+    'm-today':     document.getElementById('m-today'),
+    'm-total':     document.getElementById('m-total'),
+    'm-streak':    document.getElementById('m-streak'),
+    'm-week':      document.getElementById('m-week'),
+    'h-today':     document.getElementById('h-today'),
+    'h-streak':    document.getElementById('h-streak'),
+  };
   // Pre-resolve page elements by name so switchPage never calls getElementById
   for(const [k,v] of Object.entries(PAGE_MAP)) PAGE_EL[k]=document.getElementById(v);
-  console.log('[CodeLog] DOM cache ready — pages:', Object.keys(PAGE_EL));
+  if(DEBUG) console.log('[CodeLog] DOM cache ready — pages:', Object.keys(PAGE_EL));
 }
 
 // ── STATE ─────────────────────────────────────────────────
@@ -664,7 +672,7 @@ function loadCats(){
 function saveCats(){
   const key = currentUser ? `cl_cats_${currentUser}` : 'cl_cats';
   localStorage.setItem(key, JSON.stringify(state.categories));
-  console.log(`[CodeLog] saveCats — saved ${state.categories.length} categories for user "${currentUser}"`);
+  if(DEBUG) console.log(`[CodeLog] saveCats — saved ${state.categories.length} categories for user "${currentUser}"`);
 }
 
 // ── HELPERS ───────────────────────────────────────────────
@@ -678,8 +686,10 @@ function todayStr(){
 }
 function dateLabel(ds){ return new Date(ds+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}); }
 function catColor(cat){ const i=state.categories.indexOf(cat)%CAT_PALETTE.length; return CAT_PALETTE[Math.max(0,i)]; }
-function setEl(id,v)  { const e=document.getElementById(id); if(e) e.textContent=v; }
-function uid()        { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
+function setEl(id,v)  {
+  const e = (DOM.stats && DOM.stats[id]) || document.getElementById(id);
+  if(e) e.textContent=v;
+}
 
 function setSyncDot(s){
   const d=DOM.syncDot; if(!d) return;
@@ -758,7 +768,7 @@ function startRealtimeSync(){
     where('date','>=',cutoff.toISOString().slice(0,10)),
     orderBy('date','desc')
   );
-  console.log(`[CodeLog] startRealtimeSync — listening for user: "${currentUser}"`);
+  if(DEBUG) console.log(`[CodeLog] startRealtimeSync — listening for user: "${currentUser}"`);
 
   snapshotUnsub = onSnapshot(q,
     (snap) => {
@@ -790,7 +800,7 @@ async function addEntry(){
 
   const note = noteEl.value.trim();
 
-  console.log(`[CodeLog] addEntry — optimistic UI update, title: "${title}", category: ${state.selectedCat}`);
+  if(DEBUG) console.log(`[CodeLog] addEntry — optimistic UI update, title: "${title}", category: ${state.selectedCat}`);
   // ── Instant UI feedback ──
   titleEl.value = '';
   noteEl.value  = '';
@@ -807,7 +817,7 @@ async function addEntry(){
       timestamp: new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),
       user:      currentUser,
     });
-    console.log('[CodeLog] addEntry — Firestore write confirmed');
+    if(DEBUG) console.log('[CodeLog] addEntry — Firestore write confirmed');
   } catch(e){
     console.error('[CodeLog] addEntry — Firestore write failed:', e);
     setSyncDot('error');
@@ -822,7 +832,7 @@ async function addEntry(){
 // 1. Remove from local cache & re-render IMMEDIATELY
 // 2. deleteDoc fires in background
 function deleteEntry(id){
-  console.log(`[CodeLog] deleteEntry — optimistic remove id: ${id}`);
+  if(DEBUG) console.log(`[CodeLog] deleteEntry — optimistic remove id: ${id}`);
   // Optimistic remove — rebuild indexes immediately, no full renderAll
   state.entries = state.entries.filter(e=>e.id!==id);
   buildIndexes();
@@ -876,7 +886,7 @@ function renderCatManage(){
   state.categories.forEach(cat=>{
     const col=catColor(cat),item=document.createElement('div');
     item.className='cat-manage-item'; item.style.background=col.bg; item.style.color=col.text;
-    item.innerHTML=`<span>${cat}</span>`;
+    const catSpan=document.createElement('span'); catSpan.textContent=cat; item.appendChild(catSpan);
     if(!DEFAULTS.includes(cat)){
       const btn=document.createElement('button'); btn.className='btn-del-cat';
       btn.textContent='✕'; btn.style.color=col.text; btn.onclick=()=>deleteCat(cat);
@@ -891,7 +901,7 @@ function addCategory(){
   if(!name) return;
   if(state.categories.find(c=>c.toLowerCase()===name.toLowerCase())){ showToast('Already exists!','error'); return; }
   state.categories.push(name); saveCats(); inp.value=''; renderAll();
-  console.log(`[CodeLog] addCategory — "${name}" added, total: ${state.categories.length}`);
+  if(DEBUG) console.log(`[CodeLog] addCategory — "${name}" added, total: ${state.categories.length}`);
   showToast(`"${name}" added ✓`);
 }
 function deleteCat(cat){
@@ -900,7 +910,7 @@ function deleteCat(cat){
   if(state.selectedCat===cat) state.selectedCat=state.categories[0];
   if(state.filterCat===cat)   state.filterCat='all';
   saveCats();
-  console.log(`[CodeLog] deleteCat — "${cat}" removed, remaining: ${state.categories.length}`);
+  if(DEBUG) console.log(`[CodeLog] deleteCat — "${cat}" removed, remaining: ${state.categories.length}`);
   renderAll();
 }
 function renderFilterTabs(){
@@ -927,7 +937,7 @@ let heatmapBuilt = false; // true after first full build
 
 function buildHeatmapDOM(){
   const t0=performance.now();
-  console.log('[CodeLog] buildHeatmapDOM — building 365-cell grid (runs once)');
+  if(DEBUG) console.log('[CodeLog] buildHeatmapDOM — building 365-cell grid (runs once)');
   // Full build — runs once per session (or if date rolls over midnight)
   const grid=DOM.heatmapGrid, mRow=DOM.heatmapMonths;
   grid.innerHTML=''; mRow.innerHTML=''; cellCache={};
@@ -1033,17 +1043,30 @@ function showDayPanel(ds){
     hdr.className='cat-group-header'; hdr.style.color=col.text;
     hdr.textContent=`${cat}  (${entries.length})`; listFrag.appendChild(hdr);
     entries.forEach(e=>{
-      const isLink=e.title.startsWith('http://')||e.title.startsWith('https://');
-      const titleHtml=isLink?`<a href="${e.title}" target="_blank" rel="noopener">${e.title}</a>`:e.title;
       const item=document.createElement('div'); item.className='entry-item'; item.style.borderLeftColor=col.text;
-      item.innerHTML=`
-        <div class="entry-item-top">
-          <div class="entry-title">${titleHtml}</div>
-          <button class="btn-delete-entry" title="Delete">✕</button>
-        </div>
-        ${e.note?`<div class="entry-note">${e.note}</div>`:''}
-        <div class="entry-time">logged at ${e.timestamp}</div>`;
-      item.querySelector('.btn-delete-entry').addEventListener('click',()=>deleteEntry(e.id));
+      // Build with DOM methods — never innerHTML for user data (XSS prevention)
+      const itemTop=document.createElement('div'); itemTop.className='entry-item-top';
+      const titleDiv=document.createElement('div'); titleDiv.className='entry-title';
+      if(e.title.startsWith('http://')||e.title.startsWith('https://')){
+        const a=document.createElement('a');
+        a.href=e.title; a.target='_blank'; a.rel='noopener noreferrer';
+        a.textContent=e.title;  // textContent — never sets HTML
+        titleDiv.appendChild(a);
+      } else {
+        titleDiv.textContent=e.title;
+      }
+      const delBtn=document.createElement('button'); delBtn.className='btn-delete-entry'; delBtn.title='Delete'; delBtn.setAttribute('aria-label','Delete entry'); delBtn.textContent='✕';
+      delBtn.addEventListener('click',()=>deleteEntry(e.id));
+      itemTop.appendChild(titleDiv); itemTop.appendChild(delBtn);
+      item.appendChild(itemTop);
+      if(e.note){
+        const noteDiv=document.createElement('div'); noteDiv.className='entry-note';
+        noteDiv.textContent=e.note;  // textContent — XSS safe
+        item.appendChild(noteDiv);
+      }
+      const timeDiv=document.createElement('div'); timeDiv.className='entry-time';
+      timeDiv.textContent=`logged at ${e.timestamp}`;
+      item.appendChild(timeDiv);
       listFrag.appendChild(item);
     });
   });
@@ -1087,7 +1110,19 @@ function renderStats(){
     const count=(entriesByCategory[cat]||[]).length;
     const col=catColor(cat),pct=total?Math.round(count/total*100):0;
     const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;gap:12px;margin-bottom:10px';
-    row.innerHTML=`<span style="font-family:'Space Mono',monospace;font-size:.72rem;color:${col.text};min-width:80px">${cat}</span><div style="flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${col.text};border-radius:4px;transition:width .4s"></div></div><span style="font-family:'Space Mono',monospace;font-size:.72rem;color:var(--muted);min-width:28px;text-align:right">${count}</span>`;
+    // DOM construction — textContent for user data (XSS safe)
+    const catLbl=document.createElement('span');
+    catLbl.style.cssText=`font-family:'Space Mono',monospace;font-size:.72rem;color:${col.text};min-width:80px`;
+    catLbl.textContent=cat;
+    const barWrap=document.createElement('div');
+    barWrap.style.cssText='flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden';
+    const barFill=document.createElement('div');
+    barFill.style.cssText=`width:${pct}%;height:100%;background:${col.text};border-radius:4px;transition:width .4s`;
+    barWrap.appendChild(barFill);
+    const countLbl=document.createElement('span');
+    countLbl.style.cssText=`font-family:'Space Mono',monospace;font-size:.72rem;color:var(--muted);min-width:28px;text-align:right`;
+    countLbl.textContent=count;
+    row.appendChild(catLbl); row.appendChild(barWrap); row.appendChild(countLbl);
     bdFrag.appendChild(row);
   });
   bd.appendChild(bdFrag);
@@ -1195,12 +1230,12 @@ function openExportModal(){
 
   updateExportPreview();
   document.getElementById('export-modal').classList.remove('hidden');
-  console.log('[CodeLog] openExportModal — opened for user:', currentUser);
+  if(DEBUG) console.log('[CodeLog] openExportModal — opened for user:', currentUser);
 }
 
 function closeExportModal(){
   document.getElementById('export-modal').classList.add('hidden');
-  console.log('[CodeLog] closeExportModal — modal dismissed');
+  if(DEBUG) console.log('[CodeLog] closeExportModal — modal dismissed');
 }
 
 function downloadExport(){
@@ -1224,7 +1259,7 @@ function downloadExport(){
   a.click();
   URL.revokeObjectURL(url);
 
-  console.log(`[CodeLog] downloadExport — ${entries.length} entries exported as ${filename}`);
+  if(DEBUG) console.log(`[CodeLog] downloadExport — ${entries.length} entries exported as ${filename}`);
   showToast(`Exported ${entries.length} entries as ${fmt.toUpperCase()} ✓`);
   closeExportModal();
 }
@@ -1234,7 +1269,7 @@ function initExportEvents(){
   const modal = document.getElementById('export-modal');
   if(!modal){ console.error('[CodeLog] initExportEvents — export-modal element not found'); return; }
   modal.addEventListener('click', e=>{ if(e.target===modal) closeExportModal(); });
-  console.log('[CodeLog] initExportEvents — overlay dismiss listener attached');
+  if(DEBUG) console.log('[CodeLog] initExportEvents — overlay dismiss listener attached');
 }
 // ── RENDER ALL ────────────────────────────────────────────
 function renderAll(){ renderCatPills(); renderCatManage(); renderFilterTabs(); renderHeatmap(); renderStats(); }
@@ -1278,7 +1313,7 @@ renderFilterTabs();
 const savedUser = localStorage.getItem('cl_current_user');
 const knownProfiles = loadProfiles();
 if(savedUser && knownProfiles.includes(savedUser)){
-  console.log(`[CodeLog] init — returning user "${savedUser}", skipping profile screen`);
+  if(DEBUG) console.log(`[CodeLog] init — returning user "${savedUser}", skipping profile screen`);
   selectProfile(savedUser);  // restores session, starts sync
 } else {
   console.log('[CodeLog] init — no saved user, showing profile screen');
