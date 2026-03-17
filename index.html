@@ -680,10 +680,14 @@ function saveCats(){
 
 // ── HELPERS ───────────────────────────────────────────────
 // TODAY cached at session start and refreshed if the calendar day rolls over
-let _today = new Date().toISOString().slice(0,10);
+// Use local date parts to avoid UTC offset shifting date for non-UTC timezones (e.g. IST UTC+5:30)
+function localDateStr(d=new Date()){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+let _today = localDateStr();
 let TODAY  = _today; // module-level cache — refreshed at start of each render cycle
 function todayStr(){
-  const now = new Date().toISOString().slice(0,10);
+  const now = localDateStr();
   if(now !== _today){ _today=now; TODAY=now; heatmapBuilt=false; heatmapDirty=true; }
   return _today;
 }
@@ -824,7 +828,7 @@ async function addEntry(){
       title,
       category:  state.selectedCat,
       note,
-      date:      todayStr(),
+      date:      localDateStr(), // local date — avoids UTC offset storing wrong date for IST users
       timestamp: new Date().toISOString(),  // ISO — sortable & timezone-safe
       user:      currentUser,  // Firebase UID
     });
@@ -972,10 +976,11 @@ function buildHeatmapDOM(){
   // Start: Jan 1 of viewYear, aligned to Sunday
   const startDate = new Date(viewYear, 0, 1);
   startDate.setDate(startDate.getDate() - startDate.getDay());
-  // End: Dec 31 of viewYear, but capped at today if current year
+  // End: Dec 31 of viewYear, but capped at today if current year.
+  // Set to end of day (23:59:59) so today's cell is always included regardless of time.
   const endDate = viewYear === currentYear
-    ? new Date()
-    : new Date(viewYear, 11, 31);
+    ? (() => { const d = new Date(); d.setHours(23,59,59,999); return d; })()
+    : new Date(viewYear, 11, 31, 23, 59, 59);
   // Update year label and nav buttons
   const lbl = document.getElementById('year-label');
   if(lbl) lbl.textContent = viewYear;
@@ -989,7 +994,8 @@ function buildHeatmapDOM(){
   while(cur<=endDate){
     const dow=cur.getDay();
     if(dow===0){ if(col.children.length) gridFrag.appendChild(col); col=mkCol(); wIdx++; }
-    const ds=cur.toISOString().slice(0,10);
+    // Use local date parts — toISOString() returns UTC which shifts date for IST users
+    const ds=`${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`;
     const m=cur.getMonth();
     if(m!==curMonth){ curMonth=m; mPos.push({week:wIdx,month:m}); }
     if(wIdx===0&&dow>0&&col.children.length===0){
@@ -1138,11 +1144,11 @@ function renderStats(){
   let streak=0,d=new Date();
   if(!todayCount) d.setDate(d.getDate()-1);
   // entriesByDate loop is bounded by available data (all entries loaded)
-  let ds=d.toISOString().slice(0,10);
+  let ds=localDateStr(d);
   while(entriesByDate[ds]?.length){
     streak++;
     d.setDate(d.getDate()-1);
-    ds=d.toISOString().slice(0,10);
+    ds=localDateStr(d);
   }
   ['stat-today','m-today','h-today'].forEach(id=>setEl(id,todayCount));
   ['stat-total','m-total'].forEach(id=>setEl(id,total));
