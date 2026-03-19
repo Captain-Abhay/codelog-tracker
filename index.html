@@ -607,6 +607,10 @@ function showToastRaw(msg,type='success'){
   setTimeout(()=>t.style.display='none',2500);
 }
 
+// PAGE_MAP must be declared before initDOMCache so it can populate PAGE_EL
+const PAGE_MAP = {log:'page-log',heatmap:'page-heatmap',stats:'page-stats',cats:'page-cats'};
+let PAGE_EL = {};  // populated in initDOMCache
+
 // ── DOM CACHE ─────────────────────────────────────────────
 // Queried once at startup — never call getElementById in hot paths.
 const DOM = {};
@@ -659,8 +663,7 @@ let activePage      = 'log';
 let openDayPanelDate = null;
 let viewYear        = new Date().getFullYear(); // which year the heatmap shows
 
-const PAGE_MAP = {log:'page-log',heatmap:'page-heatmap',stats:'page-stats',cats:'page-cats'};
-let PAGE_EL = {};  // populated in initDOMCache
+// PAGE_MAP and PAGE_EL defined above initDOMCache — see below
 
 // categories live in localStorage (lightweight, device-specific but rarely change)
 function loadCats(){
